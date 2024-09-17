@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<XMLDB PATH="local/learningagreement/db" VERSION="2023062300" COMMENT="XMLDB file for learningagreement plugin">
+    <TABLES>
+        <TABLE NAME="learningagreement" COMMENT="This table saves information about user agreement.">
+            <FIELDS>
+                <FIELD NAME="id" TYPE="int" LENGTH="11" NOTNULL="true" SEQUENCE="true" COMMENT="Primary key"/>
+                <FIELD NAME="userid" TYPE="int" LENGTH="11" NOTNULL="true" COMMENT="User ID"/>
+                <FIELD NAME="timecreated" TYPE="int" LENGTH="11" NOTNULL="true" COMMENT="Time created"/>
+                <FIELD NAME="completedat" TYPE="char" LENGTH="24" NOTNULL="false" COMMENT="Time completed"/>
+                <FIELD NAME="ip" TYPE="char" LENGTH="45" NOTNULL="false" COMMENT="IP address"/>
+                <FIELD NAME="email" TYPE="char" LENGTH="100" NOTNULL="false" COMMENT="Email"/>
+                <FIELD NAME="docid" TYPE="int" LENGTH="11" NOTNULL="false" COMMENT="Document ID"/>
+            </FIELDS>
+            <KEYS>
+                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+                <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id" COMMENT="Foreign key to user table"/>
+            </KEYS>
+        </TABLE>
+    </TABLES>
+</XMLDB>
+

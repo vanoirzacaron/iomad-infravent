@@ -1,0 +1,7 @@
+{
+    "plugintypes": {
+        "peerreviewform": "mod\/peerreview\/form",
+        "peerreviewallocation": "mod\/peerreview\/allocation",
+        "peerrevieweval": "mod\/peerreview\/eval"
+    }
+}
