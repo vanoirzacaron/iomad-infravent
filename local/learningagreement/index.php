@@ -28,9 +28,9 @@ echo $OUTPUT->header();
 echo html_writer::tag('p', get_string('projectagreementtext', 'local_learningagreement'), array('class' => 'mt-2'));
 
 
-// Display investment agreement information
-echo html_writer::tag('h4', get_string('investmentagreement', 'local_learningagreement'), array('class' => 'mt-5'));
-echo html_writer::tag('p', get_string('investmentagreementtext', 'local_learningagreement'));
+// // Display investment agreement information
+// echo html_writer::tag('h4', get_string('investmentagreement', 'local_learningagreement'), array('class' => 'mt-5'));
+// echo html_writer::tag('p', get_string('investmentagreementtext', 'local_learningagreement'));
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
@@ -71,42 +71,42 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
 }
 
-if($alreadysignedlearningagreement == false or (!$alreadysignedlearningagreement->docid)) {
-echo '
-<div id="live_example" class="card card-compact bg-base-200/30 mb-2 mt-4 z-10">
-    <div class="card-body">
-        <script src="https://cdn.docuseal.co/js/form.js" async=""></script>
-        <docuseal-form data-src="https://docuseal.co/d/KxraD95MXDiXQn" data-with-send-copy-button="false" 
-            data-go-to-last="true" 
-            data-completed-message-title="Learning Agreement signed" 
-            data-completed-message-body="You can proceed on 
-            [https://studio.infrastructure.ventures/](https://studio.infrastructure.ventures/)" style="display: block; max-height: 800px; overflow: auto;">
-        </docuseal-form>
+// if($alreadysignedlearningagreement == false or (!$alreadysignedlearningagreement->docid)) {
+// echo '
+// <div id="live_example" class="card card-compact bg-base-200/30 mb-2 mt-4 z-10">
+//     <div class="card-body">
+//         <script src="https://cdn.docuseal.co/js/form.js" async=""></script>
+//         <docuseal-form data-src="https://docuseal.co/d/KxraD95MXDiXQn" data-with-send-copy-button="false" 
+//             data-go-to-last="true" 
+//             data-completed-message-title="Learning Agreement signed" 
+//             data-completed-message-body="You can proceed on 
+//             [https://studio.infrastructure.ventures/](https://studio.infrastructure.ventures/)" style="display: block; max-height: 800px; overflow: auto;">
+//         </docuseal-form>
 
-        <script>
-            window.addEventListener("load", () => {
-                const formElement = document.querySelector("docuseal-form");
-                if (formElement) {
-                    formElement.addEventListener("completed", (e) => {
-                        // Fill the form fields with the event data
-                        document.getElementById("completedat").value = e.detail.completedat;
-                        document.getElementById("ip").value = e.detail.ip;
-                        document.getElementById("email").value = e.detail.email;
-                        document.getElementById("docid").value = e.detail.id;
-                        document.getElementById("moodlesignaction").submit();
-                    });
-                } else {
-                    console.error("DocuSeal form element not found.");
-                }
-            });
-        </script>
-    </div>
-</div>
-';
-        } else {
-            echo '<button type="submit" class="btn btn-primary disabled">' . get_string('alreadysigned', 'local_learningagreement') . '</button>';
+//         <script>
+//             window.addEventListener("load", () => {
+//                 const formElement = document.querySelector("docuseal-form");
+//                 if (formElement) {
+//                     formElement.addEventListener("completed", (e) => {
+//                         // Fill the form fields with the event data
+//                         document.getElementById("completedat").value = e.detail.completedat;
+//                         document.getElementById("ip").value = e.detail.ip;
+//                         document.getElementById("email").value = e.detail.email;
+//                         document.getElementById("docid").value = e.detail.id;
+//                         document.getElementById("moodlesignaction").submit();
+//                     });
+//                 } else {
+//                     console.error("DocuSeal form element not found.");
+//                 }
+//             });
+//         </script>
+//     </div>
+// </div>
+// ';
+//         } else {
+//             echo '<button type="submit" class="btn btn-primary disabled">' . get_string('alreadysigned', 'local_learningagreement') . '</button>';
 
-        }
+//         }
 
         // Display learning agreement information
 echo html_writer::tag('h4', get_string('learningagreement', 'local_learningagreement'), array('class' => 'mt-4'));
