@@ -749,7 +749,11 @@ class assign {
         $update->completionsubmit = !empty($formdata->completionsubmit);
         $update->teamsubmission = $formdata->teamsubmission;
         $update->requireallteammemberssubmit = $formdata->requireallteammemberssubmit;
-        if (isset($formdata->teamsubmissiongroupingid)) {
+	if (is_null($update->requireallteammemberssubmit)) {
+    $update->requireallteammemberssubmit = 0;
+}
+
+	if (isset($formdata->teamsubmissiongroupingid)) {
             $update->teamsubmissiongroupingid = $formdata->teamsubmissiongroupingid;
         }
         $update->blindmarking = $formdata->blindmarking;
