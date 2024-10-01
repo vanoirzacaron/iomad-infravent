@@ -25,8 +25,6 @@ $alreadysignedlearningagreement = $DB->get_record('learningagreement', array('us
 
 // Start output to the browser.
 echo $OUTPUT->header();
-echo html_writer::tag('p', get_string('projectagreementtext', 'local_learningagreement'), array('class' => 'mt-2'));
-
 
 // // Display investment agreement information
 // echo html_writer::tag('h4', get_string('investmentagreement', 'local_learningagreement'), array('class' => 'mt-5'));
