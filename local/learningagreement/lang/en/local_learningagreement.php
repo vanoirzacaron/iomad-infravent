@@ -106,7 +106,7 @@ $string['learningagreementtext'] = '<p style="font-weight: bold;">Please agree t
     commitment.</p>';
 $string['pluginname'] = 'Project Agreement';
 $string['projectagreement'] = 'Project Agreement';
-$string['submitlearningonly'] = 'Continue with Learning Agreement only';
+$string['submitlearningonly'] = 'Continue with Learning Agreement';
 $string['welcome'] = 'Welcome to the Project Agreement plugin!';
 $string['projectagreementtext'] = 'Participants commit to actively engaging with course materials, completing assignments, maintaining open communication, 
 providing reflective feedback, and most importantly upholding academic integrity. The Learning Agreement is of mandatory consent to unlock the program. <br>
