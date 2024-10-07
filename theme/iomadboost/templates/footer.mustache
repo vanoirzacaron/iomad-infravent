@@ -54,14 +54,6 @@
         {{/output.has_communication_links}}
         {{# output.has_popover_links }}
             <div class="footer-section p-3 border-bottom">
-                {{# output.page_doc_link }}
-                    <div class="footer-support-link">{{{ output.page_doc_link }}}</div>
-                {{/ output.page_doc_link }}
-
-                {{# output.services_support_link }}
-                    <div class="footer-support-link">{{{ output.services_support_link }}}</div>
-                {{/ output.services_support_link }}
-
                 {{# output.supportemail }}
                     <div class="footer-support-link">{{{ output.supportemail }}}</div>
                 {{/ output.supportemail }}
@@ -78,12 +70,7 @@
             {{{ output.standard_end_of_body_html }}}
         </div>
         <div class="footer-section p-3">
-            <div>{{#str}}poweredbymoodle, core{{/str}}</div>
-            {{#output.moodle_release}}
-                <div>
-                    {{#str}}version, core{{/str}} {{{ output.moodle_release }}}
-                </div>
-            {{/output.moodle_release}}
+            <div>Powered by <a href="https://www.eccentriclabs.co">Eccentric Labs</a></div>
         </div>
     </div>
 

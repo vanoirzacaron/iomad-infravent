@@ -102,3 +102,23 @@ div.iomadlink, div.iomadlinkreports {
 #page-blocks-iomad_company_admin-company_groups_create_form #region-main {
     height: 100%;
 }
+
+
+/* Infravent CSS */
+
+/* Remove Home link */
+.moremenu li[data-key="home"] {
+  display: none;
+}
+.drawercontent a[href*="?redirect=0"] {
+  display: none;
+}
+
+/* Remove My courses link */
+.moremenu li[data-key="mycourses"] {
+  display: none;
+}
+.drawercontent a[href*="my/courses"] {
+  display: none;
+}
+
