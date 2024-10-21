@@ -2280,7 +2280,7 @@ class mod_peerreview_renderer extends plugin_renderer_base
 
         // Render each submission card after sorting
         foreach ($sorted_submissions as $submission) {
-            $output .= html_writer::start_tag('div', array('class' => 'col-lg-4 col-md-6 col-12 mb-4'));
+            $output .= html_writer::start_tag('div', array('class' => 'col-lg-3 col-md-4 col-12 mb-4'));
             $output .= $this->render_submission_card($submission, $cmid);
             $output .= html_writer::end_tag('div'); // Close col-md-4 div
         }
