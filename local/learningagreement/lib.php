@@ -4,8 +4,24 @@
 defined('MOODLE_INTERNAL') || die();
 
 function local_learningagreement_before_http_headers() {
-    global $PAGE, $CFG, $DB, $USER;
+    global $PAGE, $CFG, $DB, $USER, $context;
 
+// Query the database to check if the user has the 'student' role
+$sql = "SELECT 1
+          FROM {role_assignments} ra
+          JOIN {role} r ON r.id = ra.roleid
+         WHERE ra.userid = :userid
+           AND r.shortname = 'student'";
+
+$params = [
+    'userid' => $USER->id,
+];
+
+// Check if any records are returned
+$has_student_role = $DB->record_exists_sql($sql, $params);
+
+// Output true or false
+if ($has_student_role) {
     // URL of the learning agreement index page
     $agreementindex = new moodle_url('/local/learningagreement/index.php');
 
@@ -27,5 +43,8 @@ function local_learningagreement_before_http_headers() {
             }
         }
     }
+} 
+
+    
 }
 
