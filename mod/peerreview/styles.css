@@ -886,12 +886,14 @@
 }
 
 #page-mod-peerreview-submission.peerreviewsubmissionpage.peerreviewuserissubmissionauthor 
+.submission-full .header, #page-mod-peerreview-submission.peerreviewsubmissionpage.peerreviewuserisadmin 
 .submission-full .header {
     border: 1px solid #ddd;
     padding: 10px;
 }
 
 #page-mod-peerreview-submission.peerreviewsubmissionpage.peerreviewuserissubmissionauthor 
+.submission-full .header .picture, #page-mod-peerreview-submission.peerreviewsubmissionpage.peerreviewuserisadmin 
 .submission-full .header .picture {
     top: 11px;
     left: 13px;
@@ -899,7 +901,8 @@
 
 /* Arrow action */
 
-#page-mod-peerreview-submission.peerreviewsubmissionpage.peerreviewuserissubmissionauthor .arrow.down:after {
+#page-mod-peerreview-submission.peerreviewsubmissionpage.peerreviewuserissubmissionauthor .arrow.down:after,
+#page-mod-peerreview-submission.peerreviewsubmissionpage.peerreviewuserisadmin .arrow.down:after {
     content: " "; /* Unicode for down arrow */
     position: absolute;
     right: 1rem;
@@ -916,7 +919,8 @@
     color: #20c954;
 }
 
-#page-mod-peerreview-submission.peerreviewsubmissionpage.peerreviewuserissubmissionauthor .arrow.up:after {
+#page-mod-peerreview-submission.peerreviewsubmissionpage.peerreviewuserissubmissionauthor .arrow.up:after,
+#page-mod-peerreview-submission.peerreviewsubmissionpage.peerreviewuserisadmin .arrow.up:after {
     content: " "; /* Unicode for down arrow */
     position: absolute;
     right: 1rem;
@@ -934,8 +938,22 @@
     color: #20c954;
 }
 
-#page-mod-peerreview-submission.peerreviewsubmissionpage.peerreviewuserissubmissionauthor .assessment-full  .button-group .btn {
+#page-mod-peerreview-submission.peerreviewsubmissionpage.peerreviewuserissubmissionauthor .assessment-full  .button-group .btn,
+#page-mod-peerreview-submission.peerreviewsubmissionpage.peerreviewuserisadmin .assessment-full  .button-group .btn {
     display: none!important;
+}
+
+#page-mod-peerreview-submission.peerreviewsubmissionpage.peerreviewuserisadmin .assessment-full + .assessment-full .button-group .btn {
+    display: none !important;
+}
+
+#page-mod-peerreview-submission.peerreviewsubmissionpage.peerreviewuserisadmin .assessment-full .button-group .btn {
+    display: inline-block !important;
+}
+
+#page-mod-peerreview-submission.peerreviewsubmissionpage.peerreviewuserisadmin .assessment-full, 
+#page-mod-peerreview-submission.peerreviewsubmissionpage.peerreviewuserisadmin .submission-full {
+    width: 100%;
 }
 
 #page-mod-peerreview-submission.peerreviewsubmissionpage.peerreviewuserisnotsubmissionauthor .collapsibleregioninner .collapsibleregioncaption img,
@@ -977,7 +995,7 @@
     #page-mod-peerreview-assessment .submission-full {
         width: 87vw!important;
     }
-    #page-mod-peerreview-submission.peerreviewsubmissionpage.peerreviewuserisnotsubmissionauthor .assessment-full ,
+    #page-mod-peerreview-submission.peerreviewsubmissionpage.peerreviewuserisnotsubmissionauthor:not(.peerreviewuserisadmin) .assessment-full ,
     #page-mod-peerreview-assessment .assessment-full {
         width: 87vw!important;
     }  
@@ -1001,7 +1019,7 @@
         width: calc(87vw - 285px) !important;
     }
 }
-}
+
 
 
 @media (max-width: 1300px) {
@@ -1018,10 +1036,6 @@
 
 
 /* Fix view project page when user is coauthor */
-
-#page-mod-peerreview-submission.peerreviewsubmissionpage.peerreviewsubmissionpage .assessment-full {
-    /* display: none; */
-}
 
 #page-mod-peerreview-assessment.peerreviewuserissubmissioncoauthor .assessment-full {
     display: none;
@@ -1073,3 +1087,17 @@ body.path-mod.path-mod-peerreview #page-header .page-header-image {
     display: none;
 }
 
+/* Remove extra items from admin view when viewing a project, plus general fix adm view*/
+
+#page-mod-peerreview-assessment #id_assessmentsettings #fitem_id_weight, #page-mod-peerreview-assessment #id_assessmentsettings h3{
+    display: none!important;
+}
+
+#page-mod-peerreview-submission.peerreviewuserisadmin #region-main .box.py-3.mr-1.inline {
+    display: none!important;
+}
+
+#page-mod-peerreview-submission.peerreviewuserisadmin #region-main submission-full,
+#page-mod-peerreview-submission.peerreviewuserisadmin #region-main assessment-full {
+    width: 100%!important;
+}

@@ -81,7 +81,7 @@ $canpublish     = has_capability('mod/peerreview:publishsubmissions', $peerrevie
 $canoverride    = (($peerreview->phase == peerreview::PHASE_EVALUATION) and has_capability('mod/peerreview:overridegrades', $peerreview->context));
 $candeleteall   = has_capability('mod/peerreview:deletesubmissions', $peerreview->context);
 $isgroupcoauthor = false;
-
+// $ownsubmission = true;
 if($submission->groupcoauthor) {
 $groupcoauthor_emails = explode(';', $submission->groupcoauthor);
         // Check if the current user's email is in the array
@@ -98,6 +98,10 @@ if(strpos($currentPath, 'submission.php') !== false) {
 
 if(strpos($currentPath, 'assessment.php') !== false) {
     $PAGE->add_body_class('peerreviewassessmentpage');
+}
+
+if(is_siteadmin($USER)) {
+    $PAGE->add_body_class('peerreviewuserisadmin');
 }
 
 if($ownsubmission) {
@@ -266,7 +270,8 @@ $output = $PAGE->get_renderer('mod_peerreview');
 echo $output->header();
 
 
-if($ownsubmission) {
+// if($ownsubmission) {
+    if($ownsubmission || is_siteadmin($USER)) {
     echo $output->heading(get_string('mysubmission', 'peerreview'), 3);
     // Add script to collapse the project and reviews.
     echo '<script type="text/javascript">
