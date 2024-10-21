@@ -984,7 +984,7 @@
 
 /* fine adjust responsiveness */
    @media (max-width: 1500px) {
-    #page-mod-peerreview-submission.peerreviewsubmissionpage.peerreviewuserisnotsubmissionauthor .submission-full ,
+    #page-mod-peerreview-submission.peerreviewsubmissionpage.peerreviewuserisnotsubmissionauthor:not(.peerreviewuserisadmin) .submission-full ,
     #page-mod-peerreview-assessment .submission-full {
         width: 41.5vw!important;
     }
