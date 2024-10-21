@@ -348,6 +348,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
 // show instructions for submitting as thay may contain some list of questions and we need to know them
 // while reading the submitted answer
+if(!is_siteadmin($USER)) {
 if (trim($peerreview->instructauthors)) {
     $instructions = file_rewrite_pluginfile_urls($peerreview->instructauthors, 'pluginfile.php', $PAGE->context->id,
         'mod_peerreview', 'instructauthors', null, peerreview::instruction_editors_options($PAGE->context));
@@ -355,6 +356,7 @@ if (trim($peerreview->instructauthors)) {
             'peerreview-viewlet-instructauthors-collapsed');
     echo $output->box(format_text($instructions, $peerreview->instructauthorsformat, array('overflowdiv'=>true)), array('generalbox', 'instructions'));
     print_collapsible_region_end();
+}
 }
 
 // if in edit mode, display the form to edit the submission
@@ -472,7 +474,7 @@ if (has_capability('mod/peerreview:viewallassessments', $peerreview->context) or
             // own assessment has been displayed already
             continue;
         }
-        if (is_null($assessment->grade) and !has_capability('mod/peerreview:viewallassessments', $peerreview->context)) {
+        if (is_null($assessment->grade)) {
             // students do not see peer-assessment that are not graded yet
             continue;
         }
