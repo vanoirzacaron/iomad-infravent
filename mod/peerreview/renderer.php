@@ -2336,10 +2336,10 @@ class mod_peerreview_renderer extends plugin_renderer_base
         // Start the card-body div
         // $output .= html_writer::start_tag('div', array('class' => 'card-body', 'style' => 'position: relative; overflow: hidden; width: ' . $slice_width . 'px; height: ' . $slice_height . 'px;'));
 
-        $slice_width = 348; // Width of each slice
-        $slice_height = 350; // Height of each slice
+        $slice_width = 220; // Width of each slice
+        $slice_height = 130; // Height of each slice
         $slices_per_row = 4; // Number of slices per row in the large image
-        $output .= html_writer::start_tag('div', array('class' => 'card-body', 'style' => 'position: relative; overflow: hidden; height: ' . $slice_height . 'px;'));
+        $output .= html_writer::start_tag('div', array('class' => 'card-body', 'style' => 'zoom: 255%; position: relative; overflow: hidden; height: ' . $slice_height . 'px;'));
 
         if (empty($file)) {
             // Large image dimensions and source
