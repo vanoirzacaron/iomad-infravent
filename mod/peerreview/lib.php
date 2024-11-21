@@ -55,11 +55,11 @@ function peerreview_supports($feature) {
         case FEATURE_GROUPS:            return true;
         case FEATURE_GROUPINGS:         return true;
         case FEATURE_MOD_INTRO:         return true;
-        case FEATURE_BACKUP_MOODLE2:    return true;
+        case FEATURE_BACKUP_MOODLE2:    return false;
         case FEATURE_COMPLETION_TRACKS_VIEWS:
             return true;
         case FEATURE_SHOW_DESCRIPTION:  return true;
-        case FEATURE_PLAGIARISM:        return true;
+        case FEATURE_PLAGIARISM:        return false;
         case FEATURE_MOD_PURPOSE:       return MOD_PURPOSE_ASSESSMENT;
         default:                        return null;
     }
