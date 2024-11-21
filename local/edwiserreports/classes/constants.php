@@ -78,11 +78,21 @@ define('LOCAL_SITEREPORT_BLOCK_SMALL', 0);
 // Course Progres Manager.
 define('CPM_STUDENTS_ARCHETYPE', 'student');
 
+global $DB;
+$companyid = \iomad::get_my_companyid(context_system::instance(), false);
+
+// Fetch both link and main colors in a single query
+$colors = $DB->get_record('company', array('id' => $companyid), 'linkcolor, maincolor, headingcolor');
+
+$linkColor = $colors->linkcolor ?: '#F98012'; // Default link color: Blue
+$mainColor = $colors->maincolor ?: '#133F3F'; // Default main color: Light Gray
+$headingColor = $colors->headingcolor ?: '#00A1A8'; // Default heading color: Dark Gray
+
 // Color Themes.
 define('LOCAL_EDWISERREPORTS_COLOR_THEMES', [
-    ['#F98012', '#133F3F', '#00A1A8', '#444444', '#666666'],
-    ['#AC0034', '#142458', '#DFC11C', '#333333', '#999999'],
-    ['#ED553B', '#20639B', '#92CD53', '#222222', '#888888']
+    [''.$colors->linkcolor.'', ''.$colors->maincolor.'', ''.$colors->headingcolor.'', '#444444', '#666666'],
+    [''.$colors->linkcolor.'', ''.$colors->maincolor.'', ''.$colors->headingcolor.'', '#333333', '#999999'],
+    [''.$colors->linkcolor.'', ''.$colors->maincolor.'', ''.$colors->headingcolor.'', '#222222', '#888888']
 ]);
 
 // Exclude users.
