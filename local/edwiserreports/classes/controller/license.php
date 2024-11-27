@@ -456,6 +456,7 @@ class license {
      * @return void
      */
     public function get_license_notice() {
+        return '';
         $status = $this->get_data_from_db();
         if ($status == 'available') {
             return '';
