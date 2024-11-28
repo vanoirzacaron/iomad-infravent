@@ -47,6 +47,9 @@ if ($edit !== false) {
     $USER->editing = $edit;
     redirect($CFG->wwwroot . '/local/edwiserreports/index.php');
 }
+// $selecteddepartament = optional_param('selecteddepartament', '', PARAM_TEXT);
+// if($selecteddepartament)
+// die(var_dump($selecteddepartament));
 
 // If use want to edit page.
 $reset = optional_param('reset', false, PARAM_BOOL);
@@ -111,6 +114,7 @@ $PAGE->add_body_classes(array('theme_' . $PAGE->theme->name, 'local-edwiserrepor
 
 // Get renderable.
 $renderable = new \local_edwiserreports\output\edwiserreports_renderable();
+
 $output = $PAGE->get_renderer($component)->render($renderable);
 
 // Set page heading.

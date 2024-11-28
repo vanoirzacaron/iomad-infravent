@@ -64,7 +64,7 @@ class edwiserreports_renderable implements renderable, templatable {
 
         // Show license notice.
         $output->notice = (new license())->get_license_notice();
-
+        $output->seraaa = 'ueeeee';
         // Secret key.
         $output->secret = $authentication->get_secret_key($USER->id);
 
