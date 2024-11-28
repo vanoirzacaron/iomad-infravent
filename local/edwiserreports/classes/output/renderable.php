@@ -64,7 +64,7 @@ class edwiserreports_renderable implements renderable, templatable {
 
         // Show license notice.
         $output->notice = (new license())->get_license_notice();
-        $output->seraaa = 'ueeeee';
+        $output->departmentdropdown = $this->renderDepartamentDropdown();
         // Secret key.
         $output->secret = $authentication->get_secret_key($USER->id);
 
@@ -99,6 +99,10 @@ class edwiserreports_renderable implements renderable, templatable {
             $output->activeurl = new moodle_url("/local/edwiserreports/index.php");
         }
         return $output;
+    }
+    public function renderDepartamentDropdown() {
+        global $selecteddepartament;
+
     }
 }
 

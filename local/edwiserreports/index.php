@@ -47,10 +47,11 @@ if ($edit !== false) {
     $USER->editing = $edit;
     redirect($CFG->wwwroot . '/local/edwiserreports/index.php');
 }
-// $selecteddepartament = optional_param('selecteddepartament', '', PARAM_TEXT);
-// if($selecteddepartament)
-// die(var_dump($selecteddepartament));
-
+$postselecteddepartament = optional_param('selecteddepartament', '', PARAM_TEXT);
+if($postselecteddepartament) {
+    global $selecteddepartament;
+    $selecteddepartament = $postselecteddepartament;
+}
 // If use want to edit page.
 $reset = optional_param('reset', false, PARAM_BOOL);
 if ($reset !== false) {
