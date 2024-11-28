@@ -898,6 +898,7 @@ trait CommonFunctionality {
         $departoptions = '';
 
     // Loop through records to create options
+    array_shift($records); // Remove the first element
         foreach ($records as $record) {
             // Check if this record matches the selected department
             $selected = ($selecteddepartament == $record->id) ? ' selected' : '';
