@@ -47,11 +47,22 @@ if ($edit !== false) {
     $USER->editing = $edit;
     redirect($CFG->wwwroot . '/local/edwiserreports/index.php');
 }
-$postselecteddepartament = optional_param('selecteddepartament', '', PARAM_TEXT);
-if($postselecteddepartament) {
+
+
+
+// Retrieve the selected department from the POST request
+$selecteddepartmentid = optional_param('selecteddepartament', '', PARAM_INT);
+
+// Check if a department was selected
+if (!empty($selecteddepartmentid)) {
     global $selecteddepartament;
-    $selecteddepartament = $postselecteddepartament;
+
+    // Assign the selected department ID to the global variable
+    $selecteddepartament = $selecteddepartmentid;
 }
+
+
+
 // If use want to edit page.
 $reset = optional_param('reset', false, PARAM_BOOL);
 if ($reset !== false) {

@@ -101,8 +101,24 @@ class edwiserreports_renderable implements renderable, templatable {
         return $output;
     }
     public function renderDepartamentDropdown() {
-        global $selecteddepartament;
+        global $selecteddepartament, $DB;
+        $companyid = \iomad::get_my_companyid(context_system::instance(), false);
 
+        $sql = "SELECT id, name FROM {department} WHERE company = :companyid";
+        $params = ['companyid' => $companyid];
+
+        $records = $DB->get_records_sql($sql, $params);
+
+        $departoptions = '';
+
+    // Loop through records to create options
+        foreach ($records as $record) {
+            // Check if this record matches the selected department
+            $selected = ($selecteddepartament == $record->id) ? ' selected' : '';
+            $departoptions .= '<option value="' . $record->id . '"' . $selected . '>' . htmlspecialchars($record->name) . '</option>';
+    }
+
+    return $departoptions;
     }
 }
 
