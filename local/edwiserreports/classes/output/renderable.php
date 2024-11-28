@@ -53,6 +53,8 @@ class edwiserreports_renderable implements renderable, templatable {
      * @param renderer_base $output Used to do a final render of any components that need to be rendered for export.
      * @return stdClass|array
      */
+    use CommonFunctionality;
+
     public function export_for_template(renderer_base $output) {
         global $CFG, $USER;
 
@@ -100,26 +102,7 @@ class edwiserreports_renderable implements renderable, templatable {
         }
         return $output;
     }
-    public function renderDepartamentDropdown() {
-        global $selecteddepartament, $DB;
-        $companyid = \iomad::get_my_companyid(context_system::instance(), false);
 
-        $sql = "SELECT id, name FROM {department} WHERE company = :companyid";
-        $params = ['companyid' => $companyid];
-
-        $records = $DB->get_records_sql($sql, $params);
-
-        $departoptions = '';
-
-    // Loop through records to create options
-        foreach ($records as $record) {
-            // Check if this record matches the selected department
-            $selected = ($selecteddepartament == $record->id) ? ' selected' : '';
-            $departoptions .= '<option value="' . $record->id . '"' . $selected . '>' . htmlspecialchars($record->name) . '</option>';
-    }
-
-    return $departoptions;
-    }
 }
 
 /**
@@ -133,12 +116,14 @@ class activeusers_renderable implements renderable, templatable {
      * @param renderer_base $output Used to do a final render of any components that need to be rendered for export.
      * @return stdClass|array
      */
+    use CommonFunctionality;
     public function export_for_template(renderer_base $output) {
         global $CFG, $USER;
 
         $output = new stdClass();
         $authentication = new authentication();
         $blockbase = new \local_edwiserreports\block_base();
+        $output->departmentdropdown = $this->renderDepartamentDropdown();
 
         $output->contextid = context_system::instance()->id;
         $output->secret = $authentication->get_secret_key($USER->id);
@@ -187,12 +172,14 @@ class certificates_renderable implements renderable, templatable {
      * @param renderer_base $output Used to do a final render of any components that need to be rendered for export.
      * @return stdClass|array
      */
+    use CommonFunctionality;
     public function export_for_template(renderer_base $output) {
         global $CFG, $DB, $USER;
 
         $certblock = new \local_edwiserreports\blocks\certificatesblock();
         $authentication = new authentication();
         $output = new stdClass();
+        $output->departmentdropdown = $this->renderDepartamentDropdown();
 
         // Show license notice.
         $output->notice = (new license())->get_license_notice();
@@ -268,12 +255,14 @@ class completion_renderable implements renderable, templatable {
      * @param renderer_base $output Used to do a final render of any components that need to be rendered for export.
      * @return stdClass|array
      */
+    use CommonFunctionality;
     public function export_for_template(renderer_base $output) {
         global $CFG, $USER;
 
         $output = new stdClass();
         $authentication = new authentication();
         $completion = new \local_edwiserreports\blocks\completionblock();
+        $output->departmentdropdown = $this->renderDepartamentDropdown();
 
         // Course id.
         $courseid = optional_param("courseid", 0, PARAM_INT);
@@ -368,6 +357,7 @@ class studentengagement_renderable implements renderable, templatable {
      * @param renderer_base $output Used to do a final render of any components that need to be rendered for export.
      * @return stdClass|array
      */
+    use CommonFunctionality;
     public function export_for_template(renderer_base $output) {
         global $USER, $CFG;
 
@@ -376,6 +366,7 @@ class studentengagement_renderable implements renderable, templatable {
 
         $studentengagement = new \local_edwiserreports\blocks\studentengagement();
         $output = new stdClass();
+        $output->departmentdropdown = $this->renderDepartamentDropdown();
 
         // Show license notice.
         $output->notice = (new license())->get_license_notice();
@@ -450,12 +441,14 @@ class courseactivitiessummary_renderable implements renderable, templatable {
      * @param renderer_base $output Used to do a final render of any components that need to be rendered for export.
      * @return stdClass|array
      */
+    use CommonFunctionality;
     public function export_for_template(renderer_base $output) {
         global $USER, $CFG;
 
         $courseactivitiessummary = new \local_edwiserreports\reports\courseactivitiessummary();
         $authentication = new authentication();
         $output = new stdClass();
+        $output->departmentdropdown = $this->renderDepartamentDropdown();
 
         // Show license notice.
         $output->notice = (new license())->get_license_notice();
@@ -530,7 +523,7 @@ class courseactivitiessummary_renderable implements renderable, templatable {
  * Learner course progress page renderables.
  */
 class learnercourseprogress_renderable implements renderable, templatable {
-
+    use CommonFunctionality;
     /**
      * If this is true then course progress will be shown of current user only.
      *
@@ -563,6 +556,7 @@ class learnercourseprogress_renderable implements renderable, templatable {
         $filters = new stdClass();
         // Show license notice.
         $output->notice = (new license())->get_license_notice();
+        $output->departmentdropdown = $this->renderDepartamentDropdown();
 
         // Secret key.
         $output->secret = $authentication->get_secret_key($USER->id);
@@ -633,7 +627,7 @@ class learnercourseprogress_renderable implements renderable, templatable {
  * Learner course progress page renderables.
  */
 class learnercourseactivities_renderable implements renderable, templatable {
-
+    use CommonFunctionality;
     /**
      * Function to export the renderer data in a format that is suitable for a
      * edit mustache template.
@@ -647,6 +641,7 @@ class learnercourseactivities_renderable implements renderable, templatable {
         $learnercourseactivities = new \local_edwiserreports\reports\learnercourseactivities();
         $authentication = new authentication();
         $output = new stdClass();
+        $output->departmentdropdown = $this->renderDepartamentDropdown();
 
         // Show license notice.
         $output->notice = (new license())->get_license_notice();
@@ -722,6 +717,7 @@ class learnercourseactivities_renderable implements renderable, templatable {
  * All courses summary renderables.
  */
 class allcoursessummary_renderable implements renderable, templatable {
+    use CommonFunctionality;
     /**
      * Function to export the renderer data in a format that is suitable for a
      * edit mustache template.
@@ -735,6 +731,7 @@ class allcoursessummary_renderable implements renderable, templatable {
         $allcoursessummary = new \local_edwiserreports\reports\allcoursessummary();
         $authentication = new authentication();
         $output = new stdClass();
+        $output->departmentdropdown = $this->renderDepartamentDropdown();
 
         if ($allcoursessummary->can_edit_report_capability('allcoursessummary')) {
             $output->canedit = true;
@@ -802,6 +799,7 @@ class allcoursessummary_renderable implements renderable, templatable {
  * Course Activity Completion page renderables.
  */
 class courseactivitycompletion_renderable implements renderable, templatable {
+    use CommonFunctionality;
     /**
      * Function to export the renderer data in a format that is suitable for a
      * edit mustache template.
@@ -815,6 +813,7 @@ class courseactivitycompletion_renderable implements renderable, templatable {
         $courseactivitycompletion = new \local_edwiserreports\reports\courseactivitycompletion();
         $authentication = new authentication();
         $output = new stdClass();
+        $output->departmentdropdown = $this->renderDepartamentDropdown();
 
         // Show license notice.
         $output->notice = (new license())->get_license_notice();
@@ -885,3 +884,27 @@ class courseactivitycompletion_renderable implements renderable, templatable {
         return $output;
     }
 }
+
+trait CommonFunctionality {
+    public function renderDepartamentDropdown() {
+        global $selecteddepartament, $DB;
+        $companyid = \iomad::get_my_companyid(context_system::instance(), false);
+
+        $sql = "SELECT id, name FROM {department} WHERE company = :companyid";
+        $params = ['companyid' => $companyid];
+
+        $records = $DB->get_records_sql($sql, $params);
+
+        $departoptions = '';
+
+    // Loop through records to create options
+        foreach ($records as $record) {
+            // Check if this record matches the selected department
+            $selected = ($selecteddepartament == $record->id) ? ' selected' : '';
+            $departoptions .= '<option value="' . $record->id . '"' . $selected . '>' . htmlspecialchars($record->name) . '</option>';
+    }
+
+    return $departoptions;
+    }
+}
+
