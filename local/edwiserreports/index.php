@@ -48,6 +48,26 @@ if ($edit !== false) {
     redirect($CFG->wwwroot . '/local/edwiserreports/index.php');
 }
 
+//$companyid = \iomad::get_my_companyid(\context_system::instance(), false);
+//$sql = "SELECT id FROM {department} WHERE company = :companyid and parent = :parentid";
+//$params = ['companyid' => $companyid,
+   //        'parentid' => 0 ];
+//$records = $DB->get_records_sql($sql, $params);
+//$maindepart = reset($records)->id ?? null;
+
+//$userlist = \company::get_recursive_department_users($maindepart);
+
+// Extract user IDs (userid field) from the $userlist into a simple array.
+//$userids = array_column($userlist, 'userid');
+
+// If no users are found, return 0 counts or handle appropriately.
+////if (empty($userids)) {
+// /   return [0, 0];
+///}
+
+// Dynamically generate placeholders for the `IN` clause.
+//$placeholders = implode(',', array_fill(0, count($userids), '?'));
+//die(var_dump($userids));
 
 
 // Retrieve the selected department from the POST request
