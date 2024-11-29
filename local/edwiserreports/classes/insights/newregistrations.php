@@ -43,7 +43,7 @@ trait newregistrations {
         $startdate,
         $enddate,
         $oldstartdate,
-        $oldenddate
+        $oldenddate, $newid
     ) {
         global $DB;
         $sql = "SELECT COUNT(id)
@@ -54,6 +54,6 @@ trait newregistrations {
         $currentregistrations = $DB->get_field_sql($sql, [$startdate, $enddate]);
         $oldregistrations = $DB->get_field_sql($sql, [$oldstartdate, $oldenddate]);
 
-        return [$currentregistrations, $oldregistrations];
+        return [$newid, $oldregistrations];
     }
 }

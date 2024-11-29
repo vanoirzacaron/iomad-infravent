@@ -213,10 +213,11 @@ class insight {
      * @return array
      */
     public function get_card_data($id, $filter) {
-        $cache = cache::make('local_edwiserreports', 'insight');
-        if ($data = $cache->get($id . '-' . $filter)) {
-            return $data;
-        }
+        global $SESSION;
+        // $cache = cache::make('local_edwiserreports', 'insight');
+        // if ($data = $cache->get($id . '-' . $filter)) {
+        //     return $data;
+        // }
         $insight = $this->insights[$id];
         list(
             $oldstartdate,
@@ -230,7 +231,7 @@ class insight {
                 $startdate,
                 $enddate,
                 $oldstartdate,
-                $oldenddate
+                $oldenddate, $SESSION->currenteditingcompany
             );
             $difference = $currentdata - $olddata;
             $data = [
@@ -254,7 +255,7 @@ class insight {
                     break;
             }
 
-            $cache->set($id . '-' . $filter, $data);
+            // $cache->set($id . '-' . $filter, $data);
 
             return $data;
         }
