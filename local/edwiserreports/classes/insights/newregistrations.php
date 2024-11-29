@@ -51,9 +51,22 @@ trait newregistrations {
                 WHERE FLOOR(timecreated / 86400) >= ?
                 AND FLOOR(timecreated / 86400) <= ?";
 
+
+
         $currentregistrations = $DB->get_field_sql($sql, [$startdate, $enddate]);
         $oldregistrations = $DB->get_field_sql($sql, [$oldstartdate, $oldenddate]);
 
-        return [$newid, $oldregistrations];
+
+        $sql = "SELECT valor 
+        FROM {testando} 
+        WHERE userid = :userid 
+        ORDER BY id DESC 
+        LIMIT 1";
+
+$params = ['userid' => $_SESSION['USER']->id];
+$latest_value = $DB->get_field_sql($sql, $params);
+
+
+        return [$latest_value, $oldregistrations];
     }
 }

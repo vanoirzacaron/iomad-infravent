@@ -27,7 +27,7 @@ require_once($CFG->libdir.'/adminlib.php');
 require_once('classes/output/renderable.php');
 require_once('classes/export.php');
 
-global $OUTPUT;
+global $OUTPUT, $DB, $USER;
 
 // Strings for js.
 local_edwiserreports_get_required_strings_for_js();
@@ -80,7 +80,17 @@ if (!empty($selecteddepartmentid)) {
     // Assign the selected department ID to the global variable
     $selecteddepartament = $selecteddepartmentid;
 }
+$record = new stdClass();
+$record->userid = $_SESSION['USER']->id; // User ID
+$record->valor = $selecteddepartament; // Current timestamp
 
+try {
+    $DB->insert_record('testando', $record);
+} catch (dml_exception $e) {
+    // Handle the exception, log error or display message
+    error_log("Failed to insert record into 'testando': " . $e->getMessage());
+    // display error message or handle it as needed
+}
 
 
 // If use want to edit page.
