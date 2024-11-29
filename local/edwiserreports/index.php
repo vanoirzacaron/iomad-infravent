@@ -48,49 +48,42 @@ if ($edit !== false) {
     redirect($CFG->wwwroot . '/local/edwiserreports/index.php');
 }
 
-//$companyid = \iomad::get_my_companyid(\context_system::instance(), false);
-//$sql = "SELECT id FROM {department} WHERE company = :companyid and parent = :parentid";
-//$params = ['companyid' => $companyid,
-   //        'parentid' => 0 ];
-//$records = $DB->get_records_sql($sql, $params);
-//$maindepart = reset($records)->id ?? null;
-
-//$userlist = \company::get_recursive_department_users($maindepart);
-
-// Extract user IDs (userid field) from the $userlist into a simple array.
-//$userids = array_column($userlist, 'userid');
-
-// If no users are found, return 0 counts or handle appropriately.
-////if (empty($userids)) {
-// /   return [0, 0];
-///}
-
-// Dynamically generate placeholders for the `IN` clause.
-//$placeholders = implode(',', array_fill(0, count($userids), '?'));
-//die(var_dump($userids));
-
-
 // Retrieve the selected department from the POST request
 $selecteddepartmentid = optional_param('selecteddepartament', '', PARAM_INT);
 
 // Check if a department was selected
 if (!empty($selecteddepartmentid)) {
-    global $selecteddepartament;
+    // Prepare the fields for the database record
+    $record = new stdClass();
+    $record->userid = $USER->id; // User ID
+    $record->valor = $selecteddepartmentid; // Selected department ID
+    $record->action = 'selecteddept';
 
-    // Assign the selected department ID to the global variable
-    $selecteddepartament = $selecteddepartmentid;
-}
-$record = new stdClass();
-$record->userid = $_SESSION['USER']->id; // User ID
-$record->valor = $selecteddepartament; // Current timestamp
+    try {
+        // Check if a record for this user and action already exists
+        $existingrecord = $DB->get_record('infrasvenhelper', [
+            'userid' => $USER->id,
+            'action' => 'selecteddept'
+        ]);
 
-try {
-    $DB->insert_record('testando', $record);
-} catch (dml_exception $e) {
-    // Handle the exception, log error or display message
-    error_log("Failed to insert record into 'testando': " . $e->getMessage());
-    // display error message or handle it as needed
+        if ($existingrecord) {
+            // If a record exists, update it with the new value
+            $record->id = $existingrecord->id; // Set the record ID to update
+            $DB->update_record('infrasvenhelper', $record);
+        } else {
+            // If no record exists, insert a new one
+            $DB->insert_record('infrasvenhelper', $record);
+        }
+    } catch (dml_exception $e) {
+        // Handle the exception, log error or display message
+        error_log("Failed to save record in 'infrasvenhelper': " . $e->getMessage());
+        // Optionally display an error message to the user
+        throw new moodle_exception('dberror', 'error', '', null, $e->getMessage());
+    }
 }
+
+
+
 
 
 // If use want to edit page.

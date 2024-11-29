@@ -46,16 +46,6 @@ trait newregistrations {
         $oldenddate, $newid
     ) {
         global $DB;
-        $sql = "SELECT COUNT(id)
-                FROM {user}
-                WHERE FLOOR(timecreated / 86400) >= ?
-                AND FLOOR(timecreated / 86400) <= ?";
-
-
-
-        $currentregistrations = $DB->get_field_sql($sql, [$startdate, $enddate]);
-        $oldregistrations = $DB->get_field_sql($sql, [$oldstartdate, $oldenddate]);
-
 
         $sql = "SELECT valor 
         FROM {testando} 
@@ -63,9 +53,16 @@ trait newregistrations {
         ORDER BY id DESC 
         LIMIT 1";
 
-$params = ['userid' => $_SESSION['USER']->id];
-$latest_value = $DB->get_field_sql($sql, $params);
+        $params = ['userid' => $_SESSION['USER']->id];
+        $latest_value = $DB->get_field_sql($sql, $params);
 
+        $sql = "SELECT COUNT(id)
+                FROM {user}
+                WHERE FLOOR(timecreated / 86400) >= ?
+                AND FLOOR(timecreated / 86400) <= ?";
+
+        $currentregistrations = $DB->get_field_sql($sql, [$startdate, $enddate]);
+        $oldregistrations = $DB->get_field_sql($sql, [$oldstartdate, $oldenddate]);
 
         return [$latest_value, $oldregistrations];
     }
