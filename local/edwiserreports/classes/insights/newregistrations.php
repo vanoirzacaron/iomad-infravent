@@ -45,29 +45,11 @@ trait newregistrations {
         $oldstartdate,
         $oldenddate
     ) {
-        global $DB, $selecteddepartament;
-        $userids_sql = '';
-        if (!isset($selecteddepartament)) {
-        $companyid = \iomad::get_my_companyid(\context_system::instance(), false);
-        $sql = "SELECT id FROM {department} WHERE company = :companyid and parent = :parentid";
-        $params = ['companyid' => $companyid,
-                   'parentid' => 0 ];
-        $records = $DB->get_records_sql($sql, $params);
-        $maindepart = reset($records)->id ?? null;
-        $userlist = \company::get_recursive_department_users($maindepart);
-        $userids = array_column($userlist, 'userid');
-        $userids_sql = implode(',', array_map('intval', $userids)); // Ensures IDs are safely cast to integers.
-        } else {
-            $userlist = \company::get_recursive_department_users($selecteddepartament);
-            $userids = array_column($userlist, 'userid');
-            $userids_sql = implode(',', array_map('intval', $userids)); // Ensures IDs are safely cast to integers.
-        }
-
+        global $DB;
         $sql = "SELECT COUNT(id)
-        FROM {user}
-        WHERE FLOOR(timecreated / 86400) >= ?
-          AND FLOOR(timecreated / 86400) <= ?
-          AND id IN ($userids_sql)";
+                FROM {user}
+                WHERE FLOOR(timecreated / 86400) >= ?
+                AND FLOOR(timecreated / 86400) <= ?";
 
         $currentregistrations = $DB->get_field_sql($sql, [$startdate, $enddate]);
         $oldregistrations = $DB->get_field_sql($sql, [$oldstartdate, $oldenddate]);

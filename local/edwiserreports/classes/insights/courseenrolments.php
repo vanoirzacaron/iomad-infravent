@@ -84,7 +84,7 @@ trait courseenrolments {
                   FROM {enrol} e
                   JOIN {user_enrolments} ue ON e.id = ue.enrolid
                   JOIN {{$userstable}} ut ON ue.userid = ut.tempid
-                 WHERE e.courseid = :course AND ue.userid in (1,2)
+                 WHERE e.courseid = :course
                    AND FLOOR(ue.timecreated / 86400) BETWEEN :starttime AND :endtime";
         $params = array(
             'starttime' => $startdate,
@@ -111,7 +111,7 @@ trait courseenrolments {
         $oldstartdate,
         $oldenddate
     ) {
-        global $DB, $selecteddepartament;
+        global $DB;
         $blockbase = new block_base();
         $userid = $blockbase->get_current_user();
         $courses = $blockbase->get_courses_of_user($userid);
@@ -165,6 +165,6 @@ trait courseenrolments {
         // Drop temporary table.
         utility::drop_temp_table($coursetable);
 
-     return [$currentenrolments, $oldenrolments];
+        return [$currentenrolments, $oldenrolments];
     }
 }
