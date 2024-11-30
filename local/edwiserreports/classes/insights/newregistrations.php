@@ -46,7 +46,7 @@ trait newregistrations {
         $oldenddate, $newid
     ) {
         global $DB;
-
+        $userids_sql = '';
         $sql = "SELECT valor 
         FROM {infrasvenhelper} 
         WHERE userid = :userid 
