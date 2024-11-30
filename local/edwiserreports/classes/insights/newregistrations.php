@@ -48,22 +48,36 @@ trait newregistrations {
         global $DB;
 
         $sql = "SELECT valor 
-        FROM {testando} 
+        FROM {infrasvenhelper} 
         WHERE userid = :userid 
+        AND action = 'selecteddept' 
         ORDER BY id DESC 
         LIMIT 1";
 
         $params = ['userid' => $_SESSION['USER']->id];
-        $latest_value = $DB->get_field_sql($sql, $params);
+        $selecteddep = $DB->get_field_sql($sql, $params);
 
-        $sql = "SELECT COUNT(id)
-                FROM {user}
-                WHERE FLOOR(timecreated / 86400) >= ?
-                AND FLOOR(timecreated / 86400) <= ?";
+        $userlist = \company::get_recursive_department_users($selecteddep);
+
+        // Extract user IDs from the user list
+        if (!empty($userlist)) {
+            $userids = array_column($userlist, 'userid');
+            $userids_sql = implode(',', array_map('intval', $userids)); // Safely cast IDs to integers
+        } else {
+            // Set to 0 if the user list is empty
+            $userids_sql = '0';
+        }
+
+            $sql = "SELECT COUNT(id)
+            FROM {user}
+            WHERE FLOOR(timecreated / 86400) >= ?
+            AND FLOOR(timecreated / 86400) <= ?
+            AND id IN ($userids_sql)";
+
 
         $currentregistrations = $DB->get_field_sql($sql, [$startdate, $enddate]);
         $oldregistrations = $DB->get_field_sql($sql, [$oldstartdate, $oldenddate]);
 
-        return [$latest_value, $oldregistrations];
+        return [$currentregistrations, $oldregistrations];
     }
 }

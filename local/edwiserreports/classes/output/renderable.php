@@ -887,23 +887,46 @@ class courseactivitycompletion_renderable implements renderable, templatable {
 
 trait CommonFunctionality {
     public function renderDepartamentDropdown() {
-        global $selecteddepartament, $DB;
+        global $DB;
+        
+        $sql = "SELECT valor 
+        FROM {infrasvenhelper} 
+        WHERE userid = :userid 
+        AND action = 'selecteddept' 
+        ORDER BY id DESC 
+        LIMIT 1";
+
+        $params = ['userid' => $_SESSION['USER']->id];
+        $selecteddep = $DB->get_field_sql($sql, $params);
+
+
         $companyid = \iomad::get_my_companyid(context_system::instance(), false);
 
-        $sql = "SELECT id, name FROM {department} WHERE company = :companyid";
+        $sql = "SELECT id, name FROM {department} WHERE company = :companyid ORDER BY id ASC";
         $params = ['companyid' => $companyid];
-
         $records = $DB->get_records_sql($sql, $params);
 
         $departoptions = '';
 
-    // Loop through records to create options
-    array_shift($records); // Remove the first element
-        foreach ($records as $record) {
-            // Check if this record matches the selected department
-            $selected = ($selecteddepartament == $record->id) ? ' selected' : '';
-            $departoptions .= '<option value="' . $record->id . '"' . $selected . '>' . htmlspecialchars($record->name) . '</option>';
-    }
+        if (!empty($records)) {
+            // Reset the array pointer and get the first record
+            $firstRecord = reset($records);
+            $firstRecordId = $firstRecord->id;
+        
+            // Add the "All departments" option using the first record's ID
+            $departoptions = '<option value="' . $firstRecordId . '"' . (($selecteddep == $firstRecordId) ? ' selected' : '') . '>All departments</option>';
+        
+            // Loop through the records and add each department as an option
+            array_shift($records); // Remove the first element
+            foreach ($records as $record) {
+                // Check if this record matches the selected department
+                $selected = ($selecteddep == $record->id) ? ' selected' : '';
+                $departoptions .= '<option value="' . $record->id . '"' . $selected . '>' . htmlspecialchars($record->name) . '</option>';
+            }
+        } else {
+            // Handle case where there are no records (optional fallback)
+            $departoptions = '<option value="0">No departments available</option>';
+        }
 
     return $departoptions;
     }
