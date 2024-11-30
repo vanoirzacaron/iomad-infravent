@@ -41,7 +41,7 @@ trait activeusers {
      *
      * @return int
      */
-    private function get_activeusers($startdate, $enddate, $userstable) {
+    private function get_activeusers($startdate, $enddate, $userstable, $userids_sql) {
         global $DB;
 
         $sql = "SELECT DISTINCT l.userid
@@ -50,6 +50,7 @@ trait activeusers {
                  WHERE l.action = :action
                    AND FLOOR(l.timecreated / 86400) >= :starttime
                    AND FLOOR(l.timecreated / 86400) <= :endtime
+                   AND l.userid IN ($userids_sql)
                    AND l.userid > 1";
         $params = array(
             'action' => 'viewed',
@@ -79,12 +80,35 @@ trait activeusers {
 
         $blockbase = new block_base();
 
+        global $DB;
+        $userids_sql = '';
+        $sql = "SELECT valor 
+        FROM {infrasvenhelper} 
+        WHERE userid = :userid 
+        AND action = 'selecteddept' 
+        ORDER BY id DESC 
+        LIMIT 1";
+
+        $params = ['userid' => $_SESSION['USER']->id];
+        $selecteddep = $DB->get_field_sql($sql, $params);
+
+        $userlist = \company::get_recursive_department_users($selecteddep);
+
+        // Extract user IDs from the user list
+        if (!empty($userlist)) {
+            $userids = array_column($userlist, 'userid');
+            $userids_sql = implode(',', array_map('intval', $userids)); // Safely cast IDs to integers
+        } else {
+            // Set to 0 if the user list is empty
+            $userids_sql = '0';
+        }
+
         $users = $blockbase->get_user_from_cohort_course_group(0, 0, 0, $blockbase->get_current_user());
         // Temporary users table.
         $userstable = utility::create_temp_table('tmp_i_au', array_keys($users));
 
-        $currentactive = $this->get_activeusers($startdate, $enddate, $userstable);
-        $oldactive = $this->get_activeusers($oldstartdate, $oldenddate, $userstable);
+        $currentactive = $this->get_activeusers($startdate, $enddate, $userstable, $userids_sql);
+        $oldactive = $this->get_activeusers($oldstartdate, $oldenddate, $userstable, $userids_sql);
 
         // Drop temporary table.
         utility::drop_temp_table($userstable);
