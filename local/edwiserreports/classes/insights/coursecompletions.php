@@ -41,13 +41,14 @@ trait coursecompletions {
      *
      * @return int
      */
-    private function get_completions($startdate, $enddate, $coursetable) {
+    private function get_completions($startdate, $enddate, $coursetable, $userids_sql) {
         global $DB;
 
         $sql = "SELECT COUNT(cc.completiontime) as usercount
                   FROM {edwreports_course_progress} cc
                   JOIN {{$coursetable}} ct ON cc.courseid = ct.tempid
                  WHERE cc.completiontime IS NOT NULL
+                 AND cc.userid IN ($userids_sql)
                    AND FLOOR(cc.completiontime / 86400) BETWEEN :starttime AND :endtime";
         $params = array(
             'starttime' => $startdate,
@@ -65,7 +66,7 @@ trait coursecompletions {
      *
      * @return int
      */
-    private function get_course_completions($startdate, $enddate, $courseid, $userstable) {
+    private function get_course_completions($startdate, $enddate, $courseid, $userstable, $userids_sql) {
         global $DB;
 
         $sql = "SELECT COUNT(cc.completiontime) as usercount
@@ -73,6 +74,7 @@ trait coursecompletions {
                   JOIN {{$userstable}} ut ON cc.userid = ut.tempid
                  WHERE cc.completiontime IS NOT NULL
                    AND cc.courseid = :course
+                   AND cc.userid IN ($userids_sql)
                    AND FLOOR(cc.completiontime / 86400) BETWEEN :starttime AND :endtime";
         $params = array(
             'starttime' => $startdate,
@@ -100,6 +102,28 @@ trait coursecompletions {
     ) {
         global $DB;
 
+        $userids_sql = '';
+        $sql = "SELECT valor 
+        FROM {infrasvenhelper} 
+        WHERE userid = :userid 
+        AND action = 'selecteddept' 
+        ORDER BY id DESC 
+        LIMIT 1";
+
+        $params = ['userid' => $_SESSION['USER']->id];
+        $selecteddep = $DB->get_field_sql($sql, $params);
+
+        $userlist = \company::get_recursive_department_users($selecteddep);
+
+        // Extract user IDs from the user list
+        if (!empty($userlist)) {
+            $userids = array_column($userlist, 'userid');
+            $userids_sql = implode(',', array_map('intval', $userids)); // Safely cast IDs to integers
+        } else {
+            // Set to 0 if the user list is empty
+            $userids_sql = '0';
+        }
+
         $blockbase = new block_base();
         $userid = $blockbase->get_current_user();
         $courses = $blockbase->get_courses_of_user($userid);
@@ -125,8 +149,8 @@ trait coursecompletions {
                 // Create temporary users table.
                 $userstable = utility::create_temp_table('tmp_acs_u', array_keys($enrolledstudents));
 
-                $currentcompletions += $this->get_course_completions($startdate, $enddate, $course->id, $userstable);
-                $oldcompletions += $this->get_course_completions($oldstartdate, $oldenddate, $course->id, $userstable);
+                $currentcompletions += $this->get_course_completions($startdate, $enddate, $course->id, $userstable, $userids_sql);
+                $oldcompletions += $this->get_course_completions($oldstartdate, $oldenddate, $course->id, $userstable, $userids_sql);
 
                 // Drop temporary table.
                 utility::drop_temp_table($userstable);
@@ -134,8 +158,8 @@ trait coursecompletions {
 
             // Temporary course table.
             $coursetable = utility::create_temp_table('tmp_i_cc', array_keys($nonrestrictedcourses));
-            $currentcompletions += $this->get_completions($startdate, $enddate, $coursetable);
-            $oldcompletions += $this->get_completions($oldstartdate, $oldenddate, $coursetable);
+            $currentcompletions += $this->get_completions($startdate, $enddate, $coursetable, $userids_sql);
+            $oldcompletions += $this->get_completions($oldstartdate, $oldenddate, $coursetable, $userids_sql);
 
             // Drop temporary table.
             utility::drop_temp_table($coursetable);
@@ -146,8 +170,8 @@ trait coursecompletions {
         // Temporary course table.
         $coursetable = utility::create_temp_table('tmp_i_cc', array_keys($courses));
 
-        $currentcompletions = $this->get_completions($startdate, $enddate, $coursetable);
-        $oldcompletions = $this->get_completions($oldstartdate, $oldenddate, $coursetable);
+        $currentcompletions = $this->get_completions($startdate, $enddate, $coursetable, $userids_sql);
+        $oldcompletions = $this->get_completions($oldstartdate, $oldenddate, $coursetable, $userids_sql);
 
         // Drop temporary table.
         utility::drop_temp_table($coursetable);
