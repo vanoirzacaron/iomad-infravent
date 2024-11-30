@@ -42,7 +42,7 @@ trait courseenrolments {
      *
      * @return int
      */
-    private function get_enrolments($startdate, $enddate, $coursetable) {
+    private function get_enrolments($startdate, $enddate, $coursetable, $userids_sql) {
         global $DB;
 
         $archetype = $DB->sql_compare_text('r.archetype');
@@ -55,6 +55,7 @@ trait courseenrolments {
                   JOIN {role} r ON ra.roleid = r.id AND {$archetype} = {$archevalue}
                  WHERE l.eventname = :eventname
                    AND l.action = :actionname
+                   AND ra.userid IN ($userids_sql)
                    AND FLOOR(l.timecreated / 86400) BETWEEN :starttime AND :endtime";
         $params = array(
             'starttime' => $startdate,
@@ -77,7 +78,7 @@ trait courseenrolments {
      *
      * @return int
      */
-    private function get_course_enrolments($startdate, $enddate, $courseid, $userstable) {
+    private function get_course_enrolments($startdate, $enddate, $courseid, $userstable, $userids_sql) {
         global $DB;
 
         $sql = "SELECT COUNT(ue.userid) as usercount
@@ -85,6 +86,7 @@ trait courseenrolments {
                   JOIN {user_enrolments} ue ON e.id = ue.enrolid
                   JOIN {{$userstable}} ut ON ue.userid = ut.tempid
                  WHERE e.courseid = :course
+                 AND ue.userid IN ($userids_sql)
                    AND FLOOR(ue.timecreated / 86400) BETWEEN :starttime AND :endtime";
         $params = array(
             'starttime' => $startdate,
@@ -109,12 +111,39 @@ trait courseenrolments {
         $startdate,
         $enddate,
         $oldstartdate,
-        $oldenddate
+        $oldenddate,
+        $userids_sql
     ) {
         global $DB;
         $blockbase = new block_base();
         $userid = $blockbase->get_current_user();
         $courses = $blockbase->get_courses_of_user($userid);
+
+
+        $userids_sql = '';
+        $sql = "SELECT valor 
+        FROM {infrasvenhelper} 
+        WHERE userid = :userid 
+        AND action = 'selecteddept' 
+        ORDER BY id DESC 
+        LIMIT 1";
+
+        $params = ['userid' => $_SESSION['USER']->id];
+        $selecteddep = $DB->get_field_sql($sql, $params);
+
+        $userlist = \company::get_recursive_department_users($selecteddep);
+
+        // Extract user IDs from the user list
+        if (!empty($userlist)) {
+            $userids = array_column($userlist, 'userid');
+            $userids_sql = implode(',', array_map('intval', $userids)); // Safely cast IDs to integers
+        } else {
+            // Set to 0 if the user list is empty
+            $userids_sql = '0';
+        }
+
+
+
 
         $currentenrolments = 0;
         $oldenrolments = 0;
@@ -137,8 +166,8 @@ trait courseenrolments {
                 // Create temporary users table.
                 $userstable = utility::create_temp_table('tmp_acs_u', array_keys($enrolledstudents));
 
-                $currentenrolments += $this->get_course_enrolments($startdate, $enddate, $course->id, $userstable);
-                $oldenrolments += $this->get_course_enrolments($oldstartdate, $oldenddate, $course->id, $userstable);
+                $currentenrolments += $this->get_course_enrolments($startdate, $enddate, $course->id, $userstable, $userids_sql);
+                $oldenrolments += $this->get_course_enrolments($oldstartdate, $oldenddate, $course->id, $userstable, $userids_sql);
 
                 // Drop temporary table.
                 utility::drop_temp_table($userstable);
@@ -146,21 +175,21 @@ trait courseenrolments {
 
             // Temporary course table.
             $coursetable = utility::create_temp_table('tmp_i_ce', array_keys($nonrestrictedcourses));
-            $currentenrolments += $this->get_enrolments($startdate, $enddate, $coursetable);
-            $oldenrolments += $this->get_enrolments($oldstartdate, $oldenddate, $coursetable);
+            $currentenrolments += $this->get_enrolments($startdate, $enddate, $coursetable, $userids_sql);
+            $oldenrolments += $this->get_enrolments($oldstartdate, $oldenddate, $coursetable, $userids_sql);
 
             // Drop temporary table.
             utility::drop_temp_table($coursetable);
 
 
             return [$currentenrolments, $oldenrolments];
-        }
+        } 
 
         // Temporary course table.
         $coursetable = utility::create_temp_table('tmp_i_ce', array_keys($courses));
 
-        $currentenrolments = $this->get_enrolments($startdate, $enddate, $coursetable);
-        $oldenrolments = $this->get_enrolments($oldstartdate, $oldenddate, $coursetable);
+        $currentenrolments = $this->get_enrolments($startdate, $enddate, $coursetable, $userids_sql);
+        $oldenrolments = $this->get_enrolments($oldstartdate, $oldenddate, $coursetable, $userids_sql);
 
         // Drop temporary table.
         utility::drop_temp_table($coursetable);
