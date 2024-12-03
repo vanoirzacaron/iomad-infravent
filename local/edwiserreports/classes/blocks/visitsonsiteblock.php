@@ -327,6 +327,17 @@ class visitsonsiteblock extends block_base {
                     $usersql = " AND l.userid > 2";
                 }
 
+                if($userids_sql == -1) {
+                    $sql = "SELECT FLOOR(l.timecreated / 86400) as datecreated, count(l.id) as visits
+                    FROM {logstore_standard_log} l
+                    JOIN {{$coursetable}} ct ON l.courseid = ct.tempid
+                    JOIN {user} u ON u.id = l.userid $usersql
+                   WHERE l.action = :action
+                     AND (($target = :coursetarget) OR ($target = :coursemodule AND l.objecttable IS NOT NULL))
+                     AND u.deleted = 0
+                     AND FLOOR(l.timecreated / 86400) BETWEEN :startdate AND :enddate
+                GROUP BY FLOOR(l.timecreated / 86400)";
+                } else {
                 $target = $DB->sql_compare_text('l.target');
                 $sql = "SELECT FLOOR(l.timecreated / 86400) as datecreated, count(l.id) as visits
                           FROM {logstore_standard_log} l
@@ -338,6 +349,7 @@ class visitsonsiteblock extends block_base {
                            AND l.userid IN ($userids_sql)
                            AND FLOOR(l.timecreated / 86400) BETWEEN :startdate AND :enddate
                       GROUP BY FLOOR(l.timecreated / 86400)";
+                      }
                 break;
         }
 
@@ -397,17 +409,30 @@ class visitsonsiteblock extends block_base {
         $params['action'] = 'viewed';
 
         $target = $DB->sql_compare_text('l.target');
+        if($userids_sql == -1) {
         $sql = "SELECT FLOOR(l.timecreated / 86400) as datecreated, count(l.id) as visits
                   FROM {logstore_standard_log} l
                   JOIN {{$userstable}} ut ON l.userid = ut.tempid
                   JOIN {user} u ON u.id = l.userid
                  WHERE l.action = :action
                    AND u.deleted = 0
-                   AND l.userid IN ($userids_sql)
                    AND l.courseid = :course
                    AND (($target = :coursetarget) OR ($target = :coursemodule AND l.objecttable IS NOT NULL))
                    AND FLOOR(l.timecreated / 86400) BETWEEN :startdate AND :enddate
               GROUP BY FLOOR(l.timecreated / 86400)";
+        } else {
+            $sql = "SELECT FLOOR(l.timecreated / 86400) as datecreated, count(l.id) as visits
+            FROM {logstore_standard_log} l
+            JOIN {{$userstable}} ut ON l.userid = ut.tempid
+            JOIN {user} u ON u.id = l.userid
+           WHERE l.action = :action
+             AND u.deleted = 0
+             AND l.userid IN ($userids_sql)
+             AND l.courseid = :course
+             AND (($target = :coursetarget) OR ($target = :coursemodule AND l.objecttable IS NOT NULL))
+             AND FLOOR(l.timecreated / 86400) BETWEEN :startdate AND :enddate
+        GROUP BY FLOOR(l.timecreated / 86400)";
+        }
 
         $params['coursetarget'] = 'course';
         $params['coursemodule'] = 'course_module';

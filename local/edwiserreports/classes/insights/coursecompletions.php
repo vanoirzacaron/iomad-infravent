@@ -43,13 +43,20 @@ trait coursecompletions {
      */
     private function get_completions($startdate, $enddate, $coursetable, $userids_sql) {
         global $DB;
-
+        if($userids_sql == -1) {
+            $sql = "SELECT COUNT(cc.completiontime) as usercount
+            FROM {edwreports_course_progress} cc
+            JOIN {{$coursetable}} ct ON cc.courseid = ct.tempid
+           WHERE cc.completiontime IS NOT NULL
+             AND FLOOR(cc.completiontime / 86400) BETWEEN :starttime AND :endtime";
+        } else {
         $sql = "SELECT COUNT(cc.completiontime) as usercount
                   FROM {edwreports_course_progress} cc
                   JOIN {{$coursetable}} ct ON cc.courseid = ct.tempid
                  WHERE cc.completiontime IS NOT NULL
                  AND cc.userid IN ($userids_sql)
                    AND FLOOR(cc.completiontime / 86400) BETWEEN :starttime AND :endtime";
+                   }
         $params = array(
             'starttime' => $startdate,
             'endtime' => $enddate
@@ -68,7 +75,14 @@ trait coursecompletions {
      */
     private function get_course_completions($startdate, $enddate, $courseid, $userstable, $userids_sql) {
         global $DB;
-
+        if($userids_sql == -1) {
+            $sql = "SELECT COUNT(cc.completiontime) as usercount
+            FROM {edwreports_course_progress} cc
+            JOIN {{$userstable}} ut ON cc.userid = ut.tempid
+           WHERE cc.completiontime IS NOT NULL
+             AND cc.courseid = :course
+             AND FLOOR(cc.completiontime / 86400) BETWEEN :starttime AND :endtime";
+        } else {
         $sql = "SELECT COUNT(cc.completiontime) as usercount
                   FROM {edwreports_course_progress} cc
                   JOIN {{$userstable}} ut ON cc.userid = ut.tempid
@@ -76,6 +90,7 @@ trait coursecompletions {
                    AND cc.courseid = :course
                    AND cc.userid IN ($userids_sql)
                    AND FLOOR(cc.completiontime / 86400) BETWEEN :starttime AND :endtime";
+                   }
         $params = array(
             'starttime' => $startdate,
             'endtime' => $enddate,

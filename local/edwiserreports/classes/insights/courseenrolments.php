@@ -48,6 +48,16 @@ trait courseenrolments {
         $archetype = $DB->sql_compare_text('r.archetype');
         $archevalue = $DB->sql_compare_text(':archetype');
 
+        if($userids_sql == -1) {
+            $sql = "SELECT COUNT(DISTINCT(CONCAT(CONCAT(l.courseid, '-'), l.relateduserid))) as usercount
+            FROM {logstore_standard_log} l
+            JOIN {{$coursetable}} ct ON l.courseid = ct.tempid
+            JOIN {role_assignments} ra ON l.contextid = ra.contextid AND l.relateduserid = ra.userid
+            JOIN {role} r ON ra.roleid = r.id AND {$archetype} = {$archevalue}
+           WHERE l.eventname = :eventname
+             AND l.action = :actionname
+             AND FLOOR(l.timecreated / 86400) BETWEEN :starttime AND :endtime";
+        } else {
         $sql = "SELECT COUNT(DISTINCT(CONCAT(CONCAT(l.courseid, '-'), l.relateduserid))) as usercount
                   FROM {logstore_standard_log} l
                   JOIN {{$coursetable}} ct ON l.courseid = ct.tempid
@@ -57,6 +67,7 @@ trait courseenrolments {
                    AND l.action = :actionname
                    AND ra.userid IN ($userids_sql)
                    AND FLOOR(l.timecreated / 86400) BETWEEN :starttime AND :endtime";
+                   }
         $params = array(
             'starttime' => $startdate,
             'endtime' => $enddate,
@@ -81,13 +92,23 @@ trait courseenrolments {
     private function get_course_enrolments($startdate, $enddate, $courseid, $userstable, $userids_sql) {
         global $DB;
 
-        $sql = "SELECT COUNT(ue.userid) as usercount
-                  FROM {enrol} e
-                  JOIN {user_enrolments} ue ON e.id = ue.enrolid
-                  JOIN {{$userstable}} ut ON ue.userid = ut.tempid
-                 WHERE e.courseid = :course
-                 AND ue.userid IN ($userids_sql)
-                   AND FLOOR(ue.timecreated / 86400) BETWEEN :starttime AND :endtime";
+        if($userids_sql == -1) {
+            $sql = "SELECT COUNT(ue.userid) as usercount
+            FROM {enrol} e
+            JOIN {user_enrolments} ue ON e.id = ue.enrolid
+            JOIN {{$userstable}} ut ON ue.userid = ut.tempid
+           WHERE e.courseid = :course
+           AND ue.userid IN ($userids_sql)
+             AND FLOOR(ue.timecreated / 86400) BETWEEN :starttime AND :endtime";
+        } else {
+            $sql = "SELECT COUNT(ue.userid) as usercount
+              FROM {enrol} e
+              JOIN {user_enrolments} ue ON e.id = ue.enrolid
+              JOIN {{$userstable}} ut ON ue.userid = ut.tempid
+             WHERE e.courseid = :course
+             AND ue.userid IN ($userids_sql)
+               AND FLOOR(ue.timecreated / 86400) BETWEEN :starttime AND :endtime";
+        }
         $params = array(
             'starttime' => $startdate,
             'endtime' => $enddate,

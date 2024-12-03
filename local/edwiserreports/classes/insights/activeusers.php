@@ -44,6 +44,15 @@ trait activeusers {
     private function get_activeusers($startdate, $enddate, $userstable, $userids_sql) {
         global $DB;
 
+        if($userids_sql == -1) {
+            $sql = "SELECT DISTINCT l.userid
+            FROM {logstore_standard_log} l
+            JOIN {{$userstable}} ut ON l.userid = ut.tempid
+           WHERE l.action = :action
+             AND FLOOR(l.timecreated / 86400) >= :starttime
+             AND FLOOR(l.timecreated / 86400) <= :endtime
+             AND l.userid > 1";
+        } else {
         $sql = "SELECT DISTINCT l.userid
                   FROM {logstore_standard_log} l
                   JOIN {{$userstable}} ut ON l.userid = ut.tempid
@@ -52,6 +61,7 @@ trait activeusers {
                    AND FLOOR(l.timecreated / 86400) <= :endtime
                    AND l.userid IN ($userids_sql)
                    AND l.userid > 1";
+        }
         $params = array(
             'action' => 'viewed',
             'starttime' => $startdate,

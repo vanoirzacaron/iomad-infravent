@@ -915,7 +915,11 @@ trait CommonFunctionality {
         
             // Add the "All departments" option using the first record's ID
             $departoptions = '<option value="' . $firstRecordId . '"' . (($selecteddep == $firstRecordId) ? ' selected' : '') . '>All departments</option>';
-        
+            $context = context_system::instance();
+            $isadmin = has_capability('moodle/site:config', $context);
+            if($isadmin) {
+                $departoptions .= '<option value="-1"' . (($selecteddep == -1) ? ' selected' : '') . '>Whole site</option>';
+            }
             // Loop through the records and add each department as an option
             array_shift($records); // Remove the first element
             foreach ($records as $record) {
