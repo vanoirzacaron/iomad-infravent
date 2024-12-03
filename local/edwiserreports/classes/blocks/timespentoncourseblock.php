@@ -86,7 +86,7 @@ class timespentoncourseblock extends block_base {
         parent::__construct($blockid);
         // Set cache for student engagement block.
         $this->sessioncache = cache::make('local_edwiserreports', 'timespentoncourse');
-        $this->precalculated = get_config('local_edwiserreports', 'precalculated');
+        $this->precalculated = 0;
     }
 
     /**
@@ -215,7 +215,7 @@ class timespentoncourseblock extends block_base {
      *
      * @return object
      */
-    public function calculate_course_insight($courseid, $userstable, $timespent, $startdate, $enddate) {
+    public function calculate_course_insight($courseid, $userstable, $timespent, $startdate, $enddate, $userids_sql) {
         global $DB;
 
         $this->totaltimespent += $timespent;
@@ -225,13 +225,20 @@ class timespentoncourseblock extends block_base {
             'enddate' => floor($enddate / 86400),
             'courseid' => $courseid
         ];
-
+        if($userids_sql == -1) {
         $sql = "SELECT SUM(al.timespent) timespent
                   FROM {edwreports_activity_log} al
                   JOIN {{$userstable}} ut ON al.userid = ut.tempid
                  WHERE al.datecreated BETWEEN :startdate AND :enddate
                    AND al.course = :courseid";
-
+        } else {
+            $sql = "SELECT SUM(al.timespent) timespent
+            FROM {edwreports_activity_log} al
+            JOIN {{$userstable}} ut ON al.userid = ut.tempid
+           WHERE al.datecreated BETWEEN :startdate AND :enddate
+           AND al.userid IN ($userids_sql)
+             AND al.course = :courseid";
+        }
         $oldtimespent = $DB->get_field_sql($sql, $params);
         $this->oldatimespent += $oldtimespent == 0 ? 0 : $oldtimespent;
     }
@@ -247,7 +254,7 @@ class timespentoncourseblock extends block_base {
      *
      * @return object
      */
-    public function calculate_date_insight($courseid, $userstable, $data, $startdate, $enddate) {
+    public function calculate_date_insight($courseid, $userstable, $data, $startdate, $enddate, $userids_sql) {
         global $DB;
         $totaltimespent = 0;
         $count = 0;
@@ -265,11 +272,20 @@ class timespentoncourseblock extends block_base {
             'courseid' => $courseid
         ];
 
+        if($userids_sql == -1) {
         $sql = "SELECT sum(al.timespent) timespent
                   FROM {edwreports_activity_log} al
                   JOIN {{$userstable}} ut ON al.userid = ut.tempid
                  WHERE al.datecreated BETWEEN :startdate AND :enddate
                    AND al.course = :courseid";
+        } else {
+            $sql = "SELECT sum(al.timespent) timespent
+            FROM {edwreports_activity_log} al
+            JOIN {{$userstable}} ut ON al.userid = ut.tempid
+           WHERE al.datecreated BETWEEN :startdate AND :enddate
+           AND al.userid IN ($userids_sql)
+             AND al.course = :courseid";
+        }
 
         $count = $params['enddate'] - $params['startdate'] + 1;
 
@@ -300,7 +316,8 @@ class timespentoncourseblock extends block_base {
         $timeperiod,
         $insight,
         $oldstartdate,
-        $oldenddate
+        $oldenddate,
+        $userids_sql
     ) {
         global $DB;
 
@@ -330,11 +347,20 @@ class timespentoncourseblock extends block_base {
                            AND course = :course";
                 break;
             default:
+            if($userids_sql == -1) {
                 $sql = "SELECT SUM(eal.timespent) timespent
                           FROM {edwreports_activity_log} eal
                           JOIN {{$userstable}} ut ON eal.userid = ut.tempid
                          WHERE eal.datecreated BETWEEN :startdate AND :enddate
                            AND eal.course = :course";
+            } else {
+                $sql = "SELECT SUM(eal.timespent) timespent
+                          FROM {edwreports_activity_log} eal
+                          JOIN {{$userstable}} ut ON eal.userid = ut.tempid
+                         WHERE eal.datecreated BETWEEN :startdate AND :enddate
+                         AND eal.userid in ($userids_sql)
+                           AND eal.course = :course";
+            }
                 break;
         }
 
@@ -347,7 +373,8 @@ class timespentoncourseblock extends block_base {
                 $userstable,
                 $timespent,
                 $oldstartdate,
-                $oldenddate
+                $oldenddate,
+                $userids_sql
             );
         }
 
@@ -371,7 +398,7 @@ class timespentoncourseblock extends block_base {
      *
      * @return array                Response array
      */
-    public function get_date_data($params, $cohort, $courseid, $group, $userid, $insight, $oldstartdate, $oldenddate) {
+    public function get_date_data($params, $cohort, $courseid, $group, $userid, $insight, $oldstartdate, $oldenddate, $userids_sql) {
         global $DB;
 
         if ($userid == 0) {
@@ -387,12 +414,22 @@ class timespentoncourseblock extends block_base {
 
         $params['course'] = $courseid;
 
+        if($userids_sql == -1) {
         $sql = "SELECT al.datecreated, sum(al.timespent) timespent
                   FROM {edwreports_activity_log} al
                   JOIN {{$userstable}} ut ON al.userid = ut.tempid
                  WHERE al.datecreated BETWEEN :startdate AND :enddate
                    AND al.course = :course
               GROUP BY al.datecreated";
+        } else {
+            $sql = "SELECT al.datecreated, sum(al.timespent) timespent
+            FROM {edwreports_activity_log} al
+            JOIN {{$userstable}} ut ON al.userid = ut.tempid
+           WHERE al.datecreated BETWEEN :startdate AND :enddate
+             AND al.course = :course
+             AND al.userid IN ($userids_sql)
+        GROUP BY al.datecreated";
+        }
 
         $logs = $DB->get_records_sql($sql, $params);
 
@@ -416,7 +453,8 @@ class timespentoncourseblock extends block_base {
                 $userstable,
                 $dates,
                 $oldstartdate,
-                $oldenddate
+                $oldenddate,
+                $userids_sql
             );
         }
 
@@ -438,6 +476,33 @@ class timespentoncourseblock extends block_base {
         $userid = $filter->student;
         $timeperiod = $filter->date;
         $insight = isset($filter->insight) ? $filter->insight : true;
+
+
+        $userids_sql = '';
+        $sql = "SELECT valor 
+        FROM {infrasvenhelper} 
+        WHERE userid = :userid 
+        AND action = 'selecteddept' 
+        ORDER BY id DESC 
+        LIMIT 1";
+
+        $params = ['userid' => $_SESSION['USER']->id];
+        $selecteddep = $DB->get_field_sql($sql, $params);
+
+        $userlist = \company::get_recursive_department_users($selecteddep);
+
+        // Extract user IDs from the user list
+        if($selecteddep != -1) {
+            if (!empty($userlist)) {
+                $userids = array_column($userlist, 'userid');
+                $userids_sql = implode(',', array_map('intval', $userids)); // Safely cast IDs to integers
+            } else {
+                // Set to 0 if the user list is empty
+                $userids_sql = '0';
+            }
+        } else {
+            $userids_sql = -1;
+        }
 
         $cachekey = $this->generate_cache_key(
             'studentengagement',
@@ -472,7 +537,7 @@ class timespentoncourseblock extends block_base {
             );
 
             if ($course !== 0) { // Course is selected in dropdown.
-                $this->get_date_data($params, $cohort, $course, $group, $userid, $insight, $oldstartdate, $oldenddate);
+                $this->get_date_data($params, $cohort, $course, $group, $userid, $insight, $oldstartdate, $oldenddate, $userids_sql);
                 $response = [
                     'timespent' => array_values($this->dates),
                     'labels' => array_values($this->labels),
@@ -513,7 +578,8 @@ class timespentoncourseblock extends block_base {
                         $timeperiod,
                         $insight,
                         $oldstartdate,
-                        $oldenddate
+                        $oldenddate,
+                        $userids_sql
                     );
                     $labels[$usercourse->id] = format_string($usercourse->fullname, true, ['context' => \context_system::instance()]);
                     $count++;

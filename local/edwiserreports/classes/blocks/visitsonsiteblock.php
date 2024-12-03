@@ -80,7 +80,7 @@ class visitsonsiteblock extends block_base {
         parent::__construct($blockid);
         // Set cache for student engagement block.
         $this->sessioncache = cache::make('local_edwiserreports', 'visitsonsite');
-        $this->precalculated = get_config('local_edwiserreports', 'precalculated');
+        $this->precalculated = 0;
     }
 
     /**
