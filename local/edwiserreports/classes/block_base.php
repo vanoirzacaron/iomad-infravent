@@ -980,6 +980,7 @@ class block_base {
                   JOIN {role} r ON ra.roleid = r.id
                   JOIN {user} u ON ra.userid = u.id
                  WHERE ctx.contextlevel = :contextlevel
+                 AND u.id in ($userids_sql)
                    AND r.archetype = :archetype
                    AND u.confirmed = 1";
             return $DB->get_records_sql($sql, $params);
