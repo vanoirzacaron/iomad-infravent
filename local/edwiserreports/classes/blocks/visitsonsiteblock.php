@@ -290,7 +290,7 @@ class visitsonsiteblock extends block_base {
      *
      * @return array                Response array
      */
-    public function get_courses_data($params, $courses, $timeperiod, $userid, $insight, $filter, $oldstartdate, $oldenddate) {
+    public function get_courses_data($params, $courses, $timeperiod, $userid, $insight, $filter, $oldstartdate, $oldenddate, $userids_sql) {
         global $DB;
 
         if (is_siteadmin($userid) || has_capability(
@@ -335,6 +335,7 @@ class visitsonsiteblock extends block_base {
                          WHERE l.action = :action
                            AND (($target = :coursetarget) OR ($target = :coursemodule AND l.objecttable IS NOT NULL))
                            AND u.deleted = 0
+                           AND l.userid IN ($userids_sql)
                            AND FLOOR(l.timecreated / 86400) BETWEEN :startdate AND :enddate
                       GROUP BY FLOOR(l.timecreated / 86400)";
                 break;
@@ -378,7 +379,7 @@ class visitsonsiteblock extends block_base {
      *
      * @return array                Response array
      */
-    public function get_course_data($params, $courseid, $userid, $insight, $oldstartdate, $oldenddate) {
+    public function get_course_data($params, $courseid, $userid, $insight, $oldstartdate, $oldenddate, $userids_sql) {
         global $DB;
 
         if ($userid == 0) {
@@ -402,6 +403,7 @@ class visitsonsiteblock extends block_base {
                   JOIN {user} u ON u.id = l.userid
                  WHERE l.action = :action
                    AND u.deleted = 0
+                   AND l.userid IN ($userids_sql)
                    AND l.courseid = :course
                    AND (($target = :coursetarget) OR ($target = :coursemodule AND l.objecttable IS NOT NULL))
                    AND FLOOR(l.timecreated / 86400) BETWEEN :startdate AND :enddate
@@ -447,6 +449,31 @@ class visitsonsiteblock extends block_base {
      */
     public function get_data_old($filter = false) {
         global $DB;
+
+
+        $userids_sql = '';
+        $sql = "SELECT valor 
+        FROM {infrasvenhelper} 
+        WHERE userid = :userid 
+        AND action = 'selecteddept' 
+        ORDER BY id DESC 
+        LIMIT 1";
+
+        $params = ['userid' => $_SESSION['USER']->id];
+        $selecteddep = $DB->get_field_sql($sql, $params);
+
+        $userlist = \company::get_recursive_department_users($selecteddep);
+
+        // Extract user IDs from the user list
+        if (!empty($userlist)) {
+            $userids = array_column($userlist, 'userid');
+            $userids_sql = implode(',', array_map('intval', $userids)); // Safely cast IDs to integers
+        } else {
+            // Set to 0 if the user list is empty
+            $userids_sql = '0';
+        }
+
+
         $userid = $filter->student;
         $timeperiod = $filter->date;
         $insight = isset($filter->insight) ? $filter->insight : true;
@@ -498,7 +525,8 @@ class visitsonsiteblock extends block_base {
                         $userid,
                         $insight,
                         $oldstartdate,
-                        $oldenddate
+                        $oldenddate,
+                        $userids_sql
                     );
                 }
 
@@ -536,7 +564,8 @@ class visitsonsiteblock extends block_base {
                     $insight,
                     $filter,
                     $oldstartdate,
-                    $oldenddate
+                    $oldenddate,
+                    $userids_sql
                 );
             }
 
@@ -558,6 +587,30 @@ class visitsonsiteblock extends block_base {
      */
     public function get_data($filter = false) {
         global $DB;
+
+        $userids_sql = '';
+        $sql = "SELECT valor 
+        FROM {infrasvenhelper} 
+        WHERE userid = :userid 
+        AND action = 'selecteddept' 
+        ORDER BY id DESC 
+        LIMIT 1";
+
+        $params = ['userid' => $_SESSION['USER']->id];
+        $selecteddep = $DB->get_field_sql($sql, $params);
+
+        $userlist = \company::get_recursive_department_users($selecteddep);
+
+        // Extract user IDs from the user list
+        if (!empty($userlist)) {
+            $userids = array_column($userlist, 'userid');
+            $userids_sql = implode(',', array_map('intval', $userids)); // Safely cast IDs to integers
+        } else {
+            // Set to 0 if the user list is empty
+            $userids_sql = '0';
+        }
+
+        
         $userid = $filter->student;
         $timeperiod = $filter->date;
         $insight = isset($filter->insight) ? $filter->insight : true;
@@ -589,7 +642,8 @@ class visitsonsiteblock extends block_base {
                         $userid,
                         $insight,
                         $oldstartdate,
-                        $oldenddate
+                        $oldenddate,
+                        $userids_sql
                     );
                 }
 
@@ -625,7 +679,8 @@ class visitsonsiteblock extends block_base {
                     $insight,
                     $filter,
                     $oldstartdate,
-                    $oldenddate
+                    $oldenddate,
+                    $userids_sql
                 );
             }
 
