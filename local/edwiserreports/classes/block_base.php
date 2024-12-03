@@ -944,6 +944,29 @@ class block_base {
         global $DB;
         // Admin or Manager.
 
+        $userids_sql = '';
+        $sql = "SELECT valor 
+        FROM {infrasvenhelper} 
+        WHERE userid = :userid 
+        AND action = 'selecteddept' 
+        ORDER BY id DESC 
+        LIMIT 1";
+
+        $params = ['userid' => $_SESSION['USER']->id];
+        $selecteddep = $DB->get_field_sql($sql, $params);
+
+        $userlist = \company::get_recursive_department_users($selecteddep);
+
+        // Extract user IDs from the user list
+        if (!empty($userlist)) {
+            $userids = array_column($userlist, 'userid');
+            $userids_sql = implode(',', array_map('intval', $userids)); // Safely cast IDs to integers
+        } else {
+            // Set to 0 if the user list is empty
+            $userids_sql = '0';
+        }
+
+
         $params = [
             'contextlevel' => CONTEXT_COURSE,
             'archetype' => 'student'
@@ -957,6 +980,7 @@ class block_base {
                   JOIN {role} r ON ra.roleid = r.id
                   JOIN {user} u ON ra.userid = u.id
                  WHERE ctx.contextlevel = :contextlevel
+                 AND u.id in ($userids_sql)
                    AND r.archetype = :archetype
                    AND u.confirmed = 1";
             return $DB->get_records_sql($sql, $params);
