@@ -490,12 +490,16 @@ class visitsonsiteblock extends block_base {
         $userlist = \company::get_recursive_department_users($selecteddep);
 
         // Extract user IDs from the user list
-        if (!empty($userlist)) {
-            $userids = array_column($userlist, 'userid');
-            $userids_sql = implode(',', array_map('intval', $userids)); // Safely cast IDs to integers
+        if($selecteddep != -1) {
+            if (!empty($userlist)) {
+                $userids = array_column($userlist, 'userid');
+                $userids_sql = implode(',', array_map('intval', $userids)); // Safely cast IDs to integers
+            } else {
+                // Set to 0 if the user list is empty
+                $userids_sql = '0';
+            }
         } else {
-            // Set to 0 if the user list is empty
-            $userids_sql = '0';
+            $userids_sql = -1;
         }
 
 
@@ -627,6 +631,7 @@ class visitsonsiteblock extends block_base {
         $userlist = \company::get_recursive_department_users($selecteddep);
 
         // Extract user IDs from the user list
+        if($selecteddep != -1) {
         if (!empty($userlist)) {
             $userids = array_column($userlist, 'userid');
             $userids_sql = implode(',', array_map('intval', $userids)); // Safely cast IDs to integers
@@ -634,6 +639,9 @@ class visitsonsiteblock extends block_base {
             // Set to 0 if the user list is empty
             $userids_sql = '0';
         }
+    } else {
+        $userids_sql = -1;
+    }
 
         
         $userid = $filter->student;

@@ -974,39 +974,17 @@ class block_base {
 
         $fullname = $DB->sql_fullname("u.firstname", "u.lastname");
         if (is_siteadmin($userid) || has_capability('moodle/site:configview', context_system::instance(), $userid)) {
-            if($userids_sql == -1) {
-                $sql = "SELECT FLOOR(l.timecreated / 86400) as datecreated, count(l.id) as visits
-                FROM {logstore_standard_log} l
-                JOIN {{$userstable}} ut ON l.userid = ut.tempid
-                JOIN {user} u ON u.id = l.userid
-               WHERE l.action = :action
-                 AND u.deleted = 0
-                 AND l.userid IN ($userids_sql)
-                 AND l.courseid = :course
-                 AND (($target = :coursetarget) OR ($target = :coursemodule AND l.objecttable IS NOT NULL))
-                 AND FLOOR(l.timecreated / 86400) BETWEEN :startdate AND :enddate
-            GROUP BY FLOOR(l.timecreated / 86400)";
-          $sql = "SELECT DISTINCT u.id, $fullname fullname
-                FROM {context} ctx
-                JOIN {role_assignments} ra ON ctx.id = ra.contextid
-                JOIN {role} r ON ra.roleid = r.id
-                JOIN {user} u ON ra.userid = u.id
-               WHERE ctx.contextlevel = :contextlevel
-                 AND r.archetype = :archetype
-                 AND u.confirmed = 1";
+            if($selecteddep == -1) {
+                $sql = "SELECT DISTINCT u.id, $fullname fullname
+                  FROM {context} ctx
+                  JOIN {role_assignments} ra ON ctx.id = ra.contextid
+                  JOIN {role} r ON ra.roleid = r.id
+                  JOIN {user} u ON ra.userid = u.id
+                 WHERE ctx.contextlevel = :contextlevel
+                   AND r.archetype = :archetype
+                   AND u.confirmed = 1";
             } else {
-                $sql = "SELECT FLOOR(l.timecreated / 86400) as datecreated, count(l.id) as visits
-                FROM {logstore_standard_log} l
-                JOIN {{$userstable}} ut ON l.userid = ut.tempid
-                JOIN {user} u ON u.id = l.userid
-               WHERE l.action = :action
-                 AND u.deleted = 0
-                 AND l.userid IN ($userids_sql)
-                 AND l.courseid = :course
-                 AND (($target = :coursetarget) OR ($target = :coursemodule AND l.objecttable IS NOT NULL))
-                 AND FLOOR(l.timecreated / 86400) BETWEEN :startdate AND :enddate
-            GROUP BY FLOOR(l.timecreated / 86400)";
-          $sql = "SELECT DISTINCT u.id, $fullname fullname
+                $sql = "SELECT DISTINCT u.id, $fullname fullname
                 FROM {context} ctx
                 JOIN {role_assignments} ra ON ctx.id = ra.contextid
                 JOIN {role} r ON ra.roleid = r.id
@@ -1016,7 +994,6 @@ class block_base {
                  AND r.archetype = :archetype
                  AND u.confirmed = 1";
             }
-
             return $DB->get_records_sql($sql, $params);
         }
 
@@ -1026,7 +1003,7 @@ class block_base {
         // Check if current user has capability to see users from other groups.
         // Check if current user has capability and then also check if course has groups setting set as SEPARATE GROUPS.
         if (!has_capability('moodle/site:accessallgroups', $systemcontext)) {
-            if($userids_sql == -1) {
+            if($selecteddep == -1) {
                 $sql = "SELECT DISTINCT u.id, $fullname fullname, c.tempid courseid, gm.groupid groupid
                 FROM {{$coursetable}} c
                 JOIN {context} ctx ON c.tempid = ctx.instanceid
@@ -1073,7 +1050,7 @@ class block_base {
                 }
             }
         } else {
-            if($userids_sql == -1) {
+            if($selecteddep == -1) {
                 $sql = "SELECT DISTINCT u.id, $fullname fullname
                 FROM {{$coursetable}} c
                 JOIN {context} ctx ON c.tempid = ctx.instanceid
@@ -1081,7 +1058,6 @@ class block_base {
                 JOIN {role} r ON ra.roleid = r.id
                 JOIN {user} u ON ra.userid = u.id
                WHERE ctx.contextlevel = :contextlevel
-              AND u.id in ($userids_sql)
                  AND r.archetype = :archetype
                  AND u.confirmed = 1";
             } else {
