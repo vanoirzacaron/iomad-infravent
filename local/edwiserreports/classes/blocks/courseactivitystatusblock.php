@@ -84,7 +84,7 @@ class courseactivitystatusblock extends block_base {
         parent::__construct($blockid);
         // Set cache for student engagement block.
         $this->sessioncache = cache::make('local_edwiserreports', 'courseactivitystatus');
-        $this->precalculated = get_config('local_edwiserreports', 'precalculated');
+        $this->precalculated = 0;
     }
 
     /**
@@ -305,6 +305,33 @@ class courseactivitystatusblock extends block_base {
             'studentengagement',
             'courseactivitystatus-' . $implode
         );
+
+        $userids_sql = '';
+        $sql = "SELECT valor 
+        FROM {infrasvenhelper} 
+        WHERE userid = :userid 
+        AND action = 'selecteddept' 
+        ORDER BY id DESC 
+        LIMIT 1";
+
+        $params = ['userid' => $_SESSION['USER']->id];
+        $selecteddep = $DB->get_field_sql($sql, $params);
+
+        $userlist = \company::get_recursive_department_users($selecteddep);
+
+        // Extract user IDs from the user list
+        if($selecteddep != -1) {
+            if (!empty($userlist)) {
+                $userids = array_column($userlist, 'userid');
+                $userids_sql = implode(',', array_map('intval', $userids)); // Safely cast IDs to integers
+            } else {
+                // Set to 0 if the user list is empty
+                $userids_sql = '0';
+            }
+        } else {
+            $userids_sql = -1;
+        }
+
 
         $this->generate_labels($timeperiod);
 
