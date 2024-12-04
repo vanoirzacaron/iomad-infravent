@@ -264,14 +264,14 @@ class timespentonsiteblock extends block_base {
         if ($userid !== 0) { // User is selected in dropdown.
             $params['userid'] = $userid;
             $sql .= ' AND al.userid = :userid';
-        } else {
-            //TODO FIX HERE
-       //     if($userids_sql != -1) {
-      //          $sql .= "AND al.userid IN ($userids_sql)";
-       //     } else {
+        } else {   
+            if($userids_sql != -1) {
+                // IS THERE AN ISSUE HERE? WHEN THE CODE GOES HERE IT DOES NOT LOAD
+                $sql .= " AND al.userid IN ($userids_sql)";
+            } else {
             $sql .= ' AND al.userid > 2';
-      //  }
-    }
+            }
+        }
 
         $count = $params['enddate'] - $params['startdate'] + 1;
 
