@@ -265,8 +265,13 @@ class timespentonsiteblock extends block_base {
             $params['userid'] = $userid;
             $sql .= ' AND al.userid = :userid';
         } else {
+            //TODO FIX HERE
+       //     if($userids_sql != -1) {
+      //          $sql .= "AND al.userid IN ($userids_sql)";
+       //     } else {
             $sql .= ' AND al.userid > 2';
-        }
+      //  }
+    }
 
         $count = $params['enddate'] - $params['startdate'] + 1;
 
