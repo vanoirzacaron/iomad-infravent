@@ -266,7 +266,6 @@ class timespentonsiteblock extends block_base {
             $sql .= ' AND al.userid = :userid';
         } else {   
             if($userids_sql != -1) {
-                // IS THERE AN ISSUE HERE? WHEN THE CODE GOES HERE IT DOES NOT LOAD
                 $sql .= " AND al.userid IN ($userids_sql)";
             } else {
             $sql .= ' AND al.userid > 2';
@@ -310,7 +309,7 @@ class timespentonsiteblock extends block_base {
 
         // Temporary course table.
         $coursetable = utility::create_temp_table('tmp_tsos_c', array_keys($courses));
-
+        $wheresql = '';
         switch ($timeperiod . '-' . $userid . '-' . $this->precalculated) {
             case 'last7days-0-1':
             case 'weekly-0-1':
@@ -330,7 +329,11 @@ class timespentonsiteblock extends block_base {
                     $params['userid'] = $userid;
                     $wheresql = ' AND al.userid = :userid ';
                 } else {
-                    $wheresql = ' AND al.userid > 2 ';
+                    if($userids_sql != -1) {
+                        $wheresql .= " AND al.userid IN ($userids_sql)";
+                    } else {
+                        $wheresql .= ' AND al.userid > 2';
+                    }
                 }
 
                 $sql = "SELECT al.datecreated, sum(al.timespent) timespent
@@ -390,7 +393,7 @@ class timespentonsiteblock extends block_base {
      *
      * @return array                Response array
      */
-    public function get_course_data($params, $courseid, $userid, $insight, $oldstartdate, $oldenddate) {
+    public function get_course_data($params, $courseid, $userid, $insight, $oldstartdate, $oldenddate, $userids_sql) {
         global $DB;
 
         if ($userid == 0) {
@@ -406,13 +409,21 @@ class timespentonsiteblock extends block_base {
         $userstable = utility::create_temp_table('tmp_tsos_c', array_keys($users));
 
         $params['course'] = $courseid;
-
+        if($userids_sql == -1) {
         $sql = "SELECT al.datecreated, sum(al.timespent) timespent
                   FROM {edwreports_activity_log} al
                   JOIN {{$userstable}} ut ON al.userid = ut.tempid
                  WHERE al.datecreated BETWEEN :startdate AND :enddate
                    AND al.course = :course
               GROUP BY al.datecreated";
+        } else {
+            $sql = "SELECT al.datecreated, sum(al.timespent) timespent
+            FROM {edwreports_activity_log} al
+            JOIN {{$userstable}} ut ON al.userid = ut.tempid
+           WHERE al.datecreated BETWEEN :startdate AND :enddate
+             AND al.course = :course AND al.userid IN ($userids_sql)
+        GROUP BY al.datecreated";
+        }
 
         $logs = $DB->get_records_sql($sql, $params);
 
