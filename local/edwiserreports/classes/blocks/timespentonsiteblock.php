@@ -80,7 +80,7 @@ class timespentonsiteblock extends block_base {
         parent::__construct($blockid);
         // Set cache for student engagement block.
         $this->sessioncache = cache::make('local_edwiserreports', 'timespentonsite');
-        $this->precalculated = get_config('local_edwiserreports', 'precalculated');
+        $this->precalculated = 0;
     }
 
     /**
@@ -216,7 +216,7 @@ class timespentonsiteblock extends block_base {
      *
      * @return object
      */
-    public function calculate_insight($filter, $coursetable, $data, $startdate, $enddate) {
+    public function calculate_insight($filter, $coursetable, $data, $startdate, $enddate, $userids_sql) {
         global $DB;
         $totaltimespent = 0;
         $count = 0;
@@ -267,7 +267,7 @@ class timespentonsiteblock extends block_base {
         } else {
             $sql .= ' AND al.userid > 2';
         }
-
+        $sql .= "AND al.userid IN ($userids_sql)";
         $count = $params['enddate'] - $params['startdate'] + 1;
 
         $oldtimespent = $DB->get_field_sql($sql, $params);
@@ -292,7 +292,7 @@ class timespentonsiteblock extends block_base {
      *
      * @return array                Response array
      */
-    public function get_courses_data($params, $courses, $timeperiod, $userid, $insight, $filter, $oldstartdate, $oldenddate) {
+    public function get_courses_data($params, $courses, $timeperiod, $userid, $insight, $filter, $oldstartdate, $oldenddate, $userids_sql) {
         global $DB;
 
         if (is_siteadmin($userid) || has_capability(
@@ -331,8 +331,8 @@ class timespentonsiteblock extends block_base {
                 $sql = "SELECT al.datecreated, sum(al.timespent) timespent
                           FROM {edwreports_activity_log} al
                           JOIN {{$coursetable}} ct ON al.course = ct.tempid
-                         WHERE al.datecreated BETWEEN :startdate AND :enddate
-                           $wheresql
+                         WHERE al.datecreated BETWEEN :startdate AND :enddate 
+                           $wheresql AND al.userid IN ($userids_sql)
                         GROUP BY al.datecreated";
                 break;
         }
@@ -362,7 +362,7 @@ class timespentonsiteblock extends block_base {
 
         // If insight variable is true then only calculate insight.
         if ($insight) {
-            $response['insight'] = $this->calculate_insight($filter, $coursetable, $response, $oldstartdate, $oldenddate);
+            $response['insight'] = $this->calculate_insight($filter, $coursetable, $response, $oldstartdate, $oldenddate, $userids_sql);
 
         }
 
@@ -452,6 +452,37 @@ class timespentonsiteblock extends block_base {
         $insight = isset($filter->insight) ? $filter->insight : true;
         $cachekey = $this->generate_cache_key('timespentonsite', $timeperiod . '-' . $userid);
 
+
+
+        $userids_sql = '';
+        $sql = "SELECT valor 
+        FROM {infrasvenhelper} 
+        WHERE userid = :userid 
+        AND action = 'selecteddept' 
+        ORDER BY id DESC 
+        LIMIT 1";
+
+        $params = ['userid' => $_SESSION['USER']->id];
+        $selecteddep = $DB->get_field_sql($sql, $params);
+
+        $userlist = \company::get_recursive_department_users($selecteddep);
+
+        // Extract user IDs from the user list
+        if($selecteddep != -1) {
+            if (!empty($userlist)) {
+                $userids = array_column($userlist, 'userid');
+                $userids_sql = implode(',', array_map('intval', $userids)); // Safely cast IDs to integers
+            } else {
+                // Set to 0 if the user list is empty
+                $userids_sql = '0';
+            }
+        } else {
+            $userids_sql = -1;
+        }
+
+
+
+
         $this->generate_labels($timeperiod);
 
         if (!$response = $this->sessioncache->get($cachekey)) {
@@ -485,7 +516,8 @@ class timespentonsiteblock extends block_base {
                     $insight,
                     $filter,
                     $oldstartdate,
-                    $oldenddate
+                    $oldenddate,
+                    $userids_sql
                 );
 
                 // Commented this code in v 2.3.0
