@@ -267,7 +267,7 @@ class timespentonsiteblock extends block_base {
         } else {
             $sql .= ' AND al.userid > 2';
         }
-        $sql .= "AND al.userid IN ($userids_sql)";
+
         $count = $params['enddate'] - $params['startdate'] + 1;
 
         $oldtimespent = $DB->get_field_sql($sql, $params);
@@ -331,8 +331,8 @@ class timespentonsiteblock extends block_base {
                 $sql = "SELECT al.datecreated, sum(al.timespent) timespent
                           FROM {edwreports_activity_log} al
                           JOIN {{$coursetable}} ct ON al.course = ct.tempid
-                         WHERE al.datecreated BETWEEN :startdate AND :enddate 
-                           $wheresql AND al.userid IN ($userids_sql)
+                         WHERE al.datecreated BETWEEN :startdate AND :enddate
+                           $wheresql
                         GROUP BY al.datecreated";
                 break;
         }
@@ -452,6 +452,7 @@ class timespentonsiteblock extends block_base {
         $insight = isset($filter->insight) ? $filter->insight : true;
         $cachekey = $this->generate_cache_key('timespentonsite', $timeperiod . '-' . $userid);
 
+        $this->generate_labels($timeperiod);
 
 
         $userids_sql = '';
@@ -461,12 +462,9 @@ class timespentonsiteblock extends block_base {
         AND action = 'selecteddept' 
         ORDER BY id DESC 
         LIMIT 1";
-
         $params = ['userid' => $_SESSION['USER']->id];
         $selecteddep = $DB->get_field_sql($sql, $params);
-
         $userlist = \company::get_recursive_department_users($selecteddep);
-
         // Extract user IDs from the user list
         if($selecteddep != -1) {
             if (!empty($userlist)) {
@@ -481,9 +479,6 @@ class timespentonsiteblock extends block_base {
         }
 
 
-
-
-        $this->generate_labels($timeperiod);
 
         if (!$response = $this->sessioncache->get($cachekey)) {
             $params = [
@@ -531,7 +526,8 @@ class timespentonsiteblock extends block_base {
                         $userid,
                         $insight,
                         $oldstartdate,
-                        $oldenddate
+                        $oldenddate,
+                        $userids_sql
                     );
                 }
 
@@ -568,7 +564,8 @@ class timespentonsiteblock extends block_base {
                     $insight,
                     $filter,
                     $oldstartdate,
-                    $oldenddate
+                    $oldenddate,
+                    $userids_sql
                 );
             }
             return $response;
