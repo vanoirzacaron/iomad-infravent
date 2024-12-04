@@ -83,35 +83,6 @@ if (!empty($selecteddepartmentid)) {
 }
 
 
-/*
-$coursesids_sql = '';
-$sql = "SELECT valor 
-FROM {infrasvenhelper} 
-WHERE userid = :userid 
-AND action = 'selecteddept' 
-ORDER BY id DESC 
-LIMIT 1";
-
-$params = ['userid' => $_SESSION['USER']->id];
-$selecteddep = $DB->get_field_sql($sql, $params);
-
-$courselist = \company::get_recursive_department_courses($selecteddep);
-// Extract user IDs from the user list
-if($selecteddep != -1) {
-    if (!empty($courselist)) {
-        $courseids = array_column($courselist, 'courseid');
-        $coursesids_sql = implode(',', array_map('intval', $courseids)); // Safely cast IDs to integers
-    } else {
-        // Set to 0 if the user list is empty
-        $coursesids_sql = '0';
-    }
-} else {
-    $coursesids_sql = -1;
-}
-*/
-//die(var_dump($coursesids_sql)); 
-
-
 // If use want to edit page.
 $reset = optional_param('reset', false, PARAM_BOOL);
 if ($reset !== false) {

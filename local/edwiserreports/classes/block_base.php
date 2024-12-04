@@ -556,7 +556,6 @@ class block_base {
         }
 
 
-/*
         $coursesids_sql = '';
         $sql = "SELECT valor 
         FROM {infrasvenhelper} 
@@ -564,25 +563,25 @@ class block_base {
         AND action = 'selecteddept' 
         ORDER BY id DESC 
         LIMIT 1";
-
+        
         $params = ['userid' => $_SESSION['USER']->id];
         $selecteddep = $DB->get_field_sql($sql, $params);
-
-        $courselist = \company::get_recursive_department_courses($selecteddep);
-
-        // Extract user IDs from the user list
+        
         if($selecteddep != -1) {
-            if (!empty($courselist)) {
-                $courseids = array_column($courselist, 'userid');
-                $coursesids_sql = implode(',', array_map('intval', $courseids)); // Safely cast IDs to integers
+            $courselist = \company::get_recursive_department_courses($selecteddep);
+            // Extract user IDs from the user list
+            if($selecteddep != -1) {
+                if (!empty($courselist)) {
+                    $courseids = array_column($courselist, 'courseid');
+                    $coursesids_sql = implode(',', array_map('intval', $courseids)); // Safely cast IDs to integers
+                } else {
+                    // Set to 0 if the user list is empty
+                    $coursesids_sql = '0';
+                }
             } else {
-                // Set to 0 if the user list is empty
-                $coursesids_sql = '0';
+                $coursesids_sql = -1;
             }
-        } else {
-            $coursesids_sql = -1;
         }
-*/
 
         $visiblecourses = [];
 
@@ -591,6 +590,15 @@ class block_base {
             $courses = get_courses('all', 'c.fullname');
 
             foreach ($courses as $course) {
+                if ($selecteddep != -1) {
+                    // Convert the string of course IDs to an array
+                    $coursesids_array = explode(',', $coursesids_sql);
+            
+                    // Check if the current course ID is in the array
+                    if (!in_array($course->id, $coursesids_array)) {
+                        continue;
+                    }
+                }
                 $visiblecourses[$course->id] = $course;
                 $visiblecourses[$course->id]->fullname = format_string($course->fullname, true, ['context' => \context_system::instance()]);
             }
