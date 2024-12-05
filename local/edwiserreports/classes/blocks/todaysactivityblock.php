@@ -108,16 +108,17 @@ class todaysactivityblock extends block_base {
         global $DB;
         if($userids_sql != -1) {
             $sql = "SELECT COUNT(ue.id)
-                  FROM {{$userstable}} ut
-                  JOIN {user_enrolments} ue ON ut.tempid = ue.userid
-                 WHERE ue.timecreated >= :starttime
-                   AND ue.timecreated < :endtime";
+            FROM {{$userstable}} ut
+            JOIN {user_enrolments} ue ON ut.tempid = ue.userid
+           WHERE ue.timecreated >= :starttime 
+              AND ue.userid IN ($userids_sql)
+             AND ue.timecreated < :endtime";
         } else {
+
             $sql = "SELECT COUNT(ue.id)
                   FROM {{$userstable}} ut
                   JOIN {user_enrolments} ue ON ut.tempid = ue.userid
-                 WHERE ue.timecreated >= :starttime 
-                    AND ue.userid IN ($userids_sql)
+                 WHERE ue.timecreated >= :starttime
                    AND ue.timecreated < :endtime";
         }
         return $DB->count_records_sql($sql, ['starttime' => $starttime, 'endtime' => $endtime]);
@@ -133,19 +134,20 @@ class todaysactivityblock extends block_base {
         global $DB;
         if($userids_sql != -1) {
             $sql = "SELECT COUNT(cmc.id)
-                  FROM {{$userstable}} ut
-                  JOIN {course_modules_completion} cmc ON ut.tempid = cmc.userid
-                 WHERE cmc.timemodified >= :starttime
-                  AND cmc.timemodified < :endtime
-                  AND cmc.completionstate <> 0";
-        } else {
-            $sql = "SELECT COUNT(cmc.id)
             FROM {{$userstable}} ut
             JOIN {course_modules_completion} cmc ON ut.tempid = cmc.userid
            WHERE cmc.timemodified >= :starttime
            AND cmc.userid IN ($userids_sql)
             AND cmc.timemodified < :endtime
             AND cmc.completionstate <> 0";
+        } else {
+
+            $sql = "SELECT COUNT(cmc.id)
+                  FROM {{$userstable}} ut
+                  JOIN {course_modules_completion} cmc ON ut.tempid = cmc.userid
+                 WHERE cmc.timemodified >= :starttime
+                  AND cmc.timemodified < :endtime
+                  AND cmc.completionstate <> 0";
         }
         return $DB->count_records_sql($sql, ['starttime' => $starttime, 'endtime' => $endtime]);
     }
@@ -160,19 +162,19 @@ class todaysactivityblock extends block_base {
         global $DB;
         if($userids_sql != -1) {
             $sql = "SELECT COUNT(ecp.id)
-                  FROM {{$userstable}} ut
-                  JOIN {edwreports_course_progress} ecp ON ut.tempid = ecp.userid
-                 WHERE ecp.completiontime >= :starttime
-                  AND ecp.completiontime < :endtime
-                  AND ecp.progress = 100";
-        } else {
-            $sql = "SELECT COUNT(ecp.id)
             FROM {{$userstable}} ut
             JOIN {edwreports_course_progress} ecp ON ut.tempid = ecp.userid
            WHERE ecp.completiontime >= :starttime
            AND ecp.userid IN ($userids_sql)
             AND ecp.completiontime < :endtime
             AND ecp.progress = 100";
+        } else {
+            $sql = "SELECT COUNT(ecp.id)
+                  FROM {{$userstable}} ut
+                  JOIN {edwreports_course_progress} ecp ON ut.tempid = ecp.userid
+                 WHERE ecp.completiontime >= :starttime
+                  AND ecp.completiontime < :endtime
+                  AND ecp.progress = 100";
         }
         return $DB->count_records_sql($sql, ['starttime' => $starttime, 'endtime' => $endtime]);
     }
