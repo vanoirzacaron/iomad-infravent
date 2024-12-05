@@ -64,9 +64,37 @@ class todaysactivityblock extends block_base {
      * @param Object $params Parameters
      */
     public function get_data($params = false) {
+        global $DB;
+
+        $userids_sql = '';
+        $sql = "SELECT valor 
+        FROM {infrasvenhelper} 
+        WHERE userid = :userid 
+        AND action = 'selecteddept' 
+        ORDER BY id DESC 
+        LIMIT 1";
+
+        $params = ['userid' => $_SESSION['USER']->id];
+        $selecteddep = $DB->get_field_sql($sql, $params);
+
+        $userlist = \company::get_recursive_department_users($selecteddep);
+
+        // Extract user IDs from the user list
+        if($selecteddep != -1) {
+            if (!empty($userlist)) {
+                $userids = array_column($userlist, 'userid');
+                $userids_sql = implode(',', array_map('intval', $userids)); // Safely cast IDs to integers
+            } else {
+                // Set to 0 if the user list is empty
+                $userids_sql = '0';
+            }
+        } else {
+            $userids_sql = -1;
+        }
+
         $date = isset($params->date) ? $params->date : false;
         $response = new stdClass();
-        $response->data = $this->get_todaysactivity($date);
+        $response->data = $this->get_todaysactivity($date, $userids_sql);
         return $response;
     }
 
@@ -76,13 +104,22 @@ class todaysactivityblock extends block_base {
      * @param  Integer $endtime   End Time
      * @return Integer            Todays Course Enrolment Count
      */
-    public function count_user_enrolments($userstable, $starttime, $endtime) {
+    public function count_user_enrolments($userstable, $starttime, $endtime, $userids_sql) {
         global $DB;
-        $sql = "SELECT COUNT(ue.id)
+        if($userids_sql != -1) {
+            $sql = "SELECT COUNT(ue.id)
                   FROM {{$userstable}} ut
                   JOIN {user_enrolments} ue ON ut.tempid = ue.userid
                  WHERE ue.timecreated >= :starttime
                    AND ue.timecreated < :endtime";
+        } else {
+            $sql = "SELECT COUNT(ue.id)
+                  FROM {{$userstable}} ut
+                  JOIN {user_enrolments} ue ON ut.tempid = ue.userid
+                 WHERE ue.timecreated >= :starttime 
+                    AND ue.userid IN ($userids_sql)
+                   AND ue.timecreated < :endtime";
+        }
         return $DB->count_records_sql($sql, ['starttime' => $starttime, 'endtime' => $endtime]);
     }
 
@@ -92,14 +129,24 @@ class todaysactivityblock extends block_base {
      * @param  Integer $endtime   End Time
      * @return Integer            Todays Module Completion Count
      */
-    public function count_module_completions($userstable, $starttime, $endtime) {
+    public function count_module_completions($userstable, $starttime, $endtime, $userids_sql) {
         global $DB;
-        $sql = "SELECT COUNT(cmc.id)
+        if($userids_sql != -1) {
+            $sql = "SELECT COUNT(cmc.id)
                   FROM {{$userstable}} ut
                   JOIN {course_modules_completion} cmc ON ut.tempid = cmc.userid
                  WHERE cmc.timemodified >= :starttime
                   AND cmc.timemodified < :endtime
                   AND cmc.completionstate <> 0";
+        } else {
+            $sql = "SELECT COUNT(cmc.id)
+            FROM {{$userstable}} ut
+            JOIN {course_modules_completion} cmc ON ut.tempid = cmc.userid
+           WHERE cmc.timemodified >= :starttime
+           AND cmc.userid IN ($userids_sql)
+            AND cmc.timemodified < :endtime
+            AND cmc.completionstate <> 0";
+        }
         return $DB->count_records_sql($sql, ['starttime' => $starttime, 'endtime' => $endtime]);
     }
 
@@ -109,14 +156,24 @@ class todaysactivityblock extends block_base {
      * @param  Integer $endtime   End Time
      * @return Integer            Todays Course Completion Count
      */
-    public function count_course_completions($userstable, $starttime, $endtime) {
+    public function count_course_completions($userstable, $starttime, $endtime, $userids_sql) {
         global $DB;
-        $sql = "SELECT COUNT(ecp.id)
+        if($userids_sql != -1) {
+            $sql = "SELECT COUNT(ecp.id)
                   FROM {{$userstable}} ut
                   JOIN {edwreports_course_progress} ecp ON ut.tempid = ecp.userid
                  WHERE ecp.completiontime >= :starttime
                   AND ecp.completiontime < :endtime
                   AND ecp.progress = 100";
+        } else {
+            $sql = "SELECT COUNT(ecp.id)
+            FROM {{$userstable}} ut
+            JOIN {edwreports_course_progress} ecp ON ut.tempid = ecp.userid
+           WHERE ecp.completiontime >= :starttime
+           AND ecp.userid IN ($userids_sql)
+            AND ecp.completiontime < :endtime
+            AND ecp.progress = 100";
+        }
         return $DB->count_records_sql($sql, ['starttime' => $starttime, 'endtime' => $endtime]);
     }
 
@@ -126,11 +183,16 @@ class todaysactivityblock extends block_base {
      * @param  Integer $endtime   End Time
      * @return Integer            Todays Registration Count
      */
-    public function count_registrations_completions($starttime, $endtime) {
+    public function count_registrations_completions($starttime, $endtime, $userids_sql) {
         global $DB;
-
+        if($userids_sql == -1) {
+            $select = "timecreated >= $starttime
+            AND timecreated < $endtime";
+        } else {
         $select = "timecreated >= $starttime
-                   AND timecreated < $endtime";
+                   AND timecreated < $endtime
+                    AND IN ($userids_sql)";
+                }
         return $DB->count_records_select('user', $select);
     }
 
@@ -140,14 +202,22 @@ class todaysactivityblock extends block_base {
      * @param  Integer $endtime   End Time
      * @return Integer            Todays Site Visits Count
      */
-    public function count_site_visits($starttime, $endtime) {
+    public function count_site_visits($starttime, $endtime, $userids_sql) {
         global $DB;
 
+        if($userids_sql == -1) {
         $visitsssql = "SELECT DISTINCT userid
             FROM {logstore_standard_log}
             WHERE timecreated >= :starttime
             AND timecreated < :endtime
-            AND userid < 1";
+            AND userid > 1";
+        } else {
+            $visitsssql = "SELECT DISTINCT userid
+            FROM {logstore_standard_log}
+            WHERE timecreated >= :starttime
+            AND timecreated < :endtime
+            AND userid IN ($userids_sql)";
+        }
         $params = array(
             'starttime' => $starttime,
             'endtime' => $endtime
@@ -163,17 +233,26 @@ class todaysactivityblock extends block_base {
      * @param  Integer $endtime   End Time
      * @return Integer            Get Visits in Every Hours
      */
-    public function get_visits_in_hours($starttime, $endtime) {
+    public function get_visits_in_hours($starttime, $endtime, $userids_sql) {
         global $DB;
 
         // Prepare default array.
         $visitshour = array_fill(0, 24, []);
 
-        $visitsssql = "SELECT id, userid, timecreated
+        if($userids_sql == -1) {
+            $visitsssql = "SELECT id, userid, timecreated
             FROM {logstore_standard_log}
             WHERE timecreated >= :starttime
             AND timecreated < :endtime
             ORDER BY timecreated ASC";
+        } else {
+            $visitsssql = "SELECT id, userid, timecreated
+            FROM {logstore_standard_log}
+            WHERE timecreated >= :starttime
+            AND timecreated < :endtime
+            AND userid IN ($userids_sql)
+            ORDER BY timecreated ASC";
+        }
 
         $visits = $DB->get_records_sql($visitsssql, array(
             'starttime' => $starttime,
@@ -197,7 +276,7 @@ class todaysactivityblock extends block_base {
      * @param  String $date Date filter in proprtdat format
      * @return Array        Array of todays activities information
      */
-    public function get_todaysactivity($date) {
+    public function get_todaysactivity($date, $userids_sql) {
         global $DB;
         $rtl = get_string('thisdirection', 'langconfig') == 'rtl' ? 1 : 0;
 
@@ -228,12 +307,12 @@ class todaysactivityblock extends block_base {
         $userstable = utility::create_temp_table('tmp_ta_c', array_keys($users));
 
         $todaysactivity = array();
-        $todaysactivity["enrollments"] = $this->count_user_enrolments($userstable, $starttime, $endtime);
-        $todaysactivity["activitycompletions"] = $this->count_module_completions($userstable, $starttime, $endtime);
-        $todaysactivity["coursecompletions"] = $this->count_course_completions($userstable, $starttime, $endtime);
-        $todaysactivity["registrations"] = $this->count_registrations_completions($starttime, $endtime);
-        $todaysactivity["visits"] = $this->count_site_visits($starttime, $endtime);
-        $todaysactivity["visitshour"] = $this->get_visits_in_hours($starttime, $endtime);
+        $todaysactivity["enrollments"] = $this->count_user_enrolments($userstable, $starttime, $endtime, $userids_sql);
+        $todaysactivity["activitycompletions"] = $this->count_module_completions($userstable, $starttime, $endtime, $userids_sql);
+        $todaysactivity["coursecompletions"] = $this->count_course_completions($userstable, $starttime, $endtime, $userids_sql);
+        $todaysactivity["registrations"] = $this->count_registrations_completions($starttime, $endtime, $userids_sql);
+        $todaysactivity["visits"] = $this->count_site_visits($starttime, $endtime, $userids_sql);
+        $todaysactivity["visitshour"] = $this->get_visits_in_hours($starttime, $endtime, $userids_sql);
 
         $todaysactivity["onlinelearners"] = $todaysactivity["onlineteachers"] = 0;
 
