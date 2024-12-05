@@ -119,17 +119,6 @@ class liveusersblock extends block_base {
         $params['name'] = 'block_online_users_uservisibility';
 
         if($userids_sql != -1) {
-        $sql = "SELECT $userfields $lastaccess $uservisibility
-                    FROM {user} u $groupmembers
-                LEFT JOIN {user_preferences} up ON up.userid = u.id
-                        AND up.name = :name
-                    WHERE u.lastaccess > :timefrom
-                        AND u.lastaccess <= :now
-                        AND u.deleted = 0
-                        $uservisibilityselect
-                        $groupselect $groupby
-                ORDER BY lastaccess DESC ";
-        } else {
             $sql = "SELECT $userfields $lastaccess $uservisibility
             FROM {user} u $groupmembers
         LEFT JOIN {user_preferences} up ON up.userid = u.id
@@ -139,6 +128,18 @@ class liveusersblock extends block_base {
                 AND u.lastaccess <= :now
                 AND u.deleted = 0
                 $uservisibilityselect 
+                $groupselect $groupby
+        ORDER BY lastaccess DESC ";
+        } else {
+
+            $sql = "SELECT $userfields $lastaccess $uservisibility
+            FROM {user} u $groupmembers
+        LEFT JOIN {user_preferences} up ON up.userid = u.id
+                AND up.name = :name
+            WHERE u.lastaccess > :timefrom
+                AND u.lastaccess <= :now
+                AND u.deleted = 0
+                $uservisibilityselect
                 $groupselect $groupby
         ORDER BY lastaccess DESC ";
         }
