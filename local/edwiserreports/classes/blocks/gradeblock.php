@@ -236,6 +236,35 @@ class gradeblock extends block_base {
         $group = $filter->group;
         $userid = $filter->student;
 
+        global $DB;
+
+        $userids_sql = '';
+        $sql = "SELECT valor 
+        FROM {infrasvenhelper} 
+        WHERE userid = :userid 
+        AND action = 'selecteddept' 
+        ORDER BY id DESC 
+        LIMIT 1";
+
+        $params = ['userid' => $_SESSION['USER']->id];
+        $selecteddep = $DB->get_field_sql($sql, $params);
+
+        $userlist = \company::get_recursive_department_users($selecteddep);
+
+        // Extract user IDs from the user list
+        if($selecteddep != -1) {
+            if (!empty($userlist)) {
+                $userids = array_column($userlist, 'userid');
+                $userids_sql = implode(',', array_map('intval', $userids)); // Safely cast IDs to integers
+            } else {
+                // Set to 0 if the user list is empty
+                $userids_sql = '0';
+            }
+        } else {
+            $userids_sql = -1;
+        }
+
+
         $cachekey = $this->generate_cache_key('grade', implode('-', [$cohort, $course, $group, $userid]));
 
         if (!$response = $this->sessioncache->get($cachekey)) {
@@ -271,12 +300,23 @@ class gradeblock extends block_base {
             switch (true) {
                 case $course == 0 && $userid == 0:
                     // Students grade categories.
+                    
+                    if($userids_sql == -1) {
                     $sql = "SELECT (gg.finalgrade / gg.rawgrademax * 100) grade
                               FROM {{$coursetable}} ct
                               JOIN {grade_items} gi ON ct.tempid = gi.courseid
                               JOIN {grade_grades} gg ON gi.id = gg.itemid
                               JOIN {{$userstable}} ut ON ut.tempid = gg.userid
                              WHERE gi.itemtype = :itemtype";
+                    } else {
+                        $sql = "SELECT (gg.finalgrade / gg.rawgrademax * 100) grade
+                        FROM {{$coursetable}} ct
+                        JOIN {grade_items} gi ON ct.tempid = gi.courseid
+                        JOIN {grade_grades} gg ON gi.id = gg.itemid
+                        JOIN {{$userstable}} ut ON ut.tempid = gg.userid
+                       WHERE gi.itemtype = :itemtype AND gg.userid IN ($userids_sql)"; 
+                    }
+
                     $params['itemtype'] = 'course';
                     $header = 'studentgrades';
                     $tooltip = [
@@ -286,12 +326,25 @@ class gradeblock extends block_base {
                     break;
                 case $course != 0 && $userid == 0:
                     // Students grade categories.
+
+                    if($userids_sql == -1) {
                     $sql = "SELECT (gg.finalgrade / gg.rawgrademax * 100) grade
                               FROM {{$userstable}} ut
                               JOIN {grade_grades} gg ON ut.tempid = gg.userid
                               JOIN {grade_items} gi ON gi.id = gg.itemid
                              WHERE gi.itemtype = :itemtype
                                AND gi.courseid = :course";
+
+                    } else {
+                        $sql = "SELECT (gg.finalgrade / gg.rawgrademax * 100) grade
+                        FROM {{$userstable}} ut
+                        JOIN {grade_grades} gg ON ut.tempid = gg.userid
+                        JOIN {grade_items} gi ON gi.id = gg.itemid
+                       WHERE gi.itemtype = :itemtype
+                         AND gi.courseid = :course 
+                         AND gg.userid IN ($userids_sql)";
+                    }
+
                     $params['itemtype'] = 'course';
                     $params['course'] = $course;
                     $header = 'studentgrades';
@@ -302,12 +355,24 @@ class gradeblock extends block_base {
                     break;
                 case $course == 0 && $userid != 0:
                     // Courses grade categories.
+
+                    if($userids_sql == -1) {
                     $sql = "SELECT (gg.finalgrade / gg.rawgrademax * 100) grade
                               FROM {{$coursetable}} ct
                               JOIN {grade_items} gi ON ct.tempid = gi.courseid
                               JOIN {grade_grades} gg ON gi.id = gg.itemid
                              WHERE gi.itemtype = :itemtype
                                AND gg.userid = :userid";
+                    } else {
+                        $sql = "SELECT (gg.finalgrade / gg.rawgrademax * 100) grade
+                        FROM {{$coursetable}} ct
+                        JOIN {grade_items} gi ON ct.tempid = gi.courseid
+                        JOIN {grade_grades} gg ON gi.id = gg.itemid
+                       WHERE gi.itemtype = :itemtype
+                         AND gg.userid = :userid 
+                         AND gg.userid IN ($userids_sql)"; 
+                    }
+
                     $params['itemtype'] = 'course';
                     $params['userid'] = $userid;
                     $header = 'coursegrades';
@@ -318,12 +383,26 @@ class gradeblock extends block_base {
                     break;
                 case $course != 0 && $userid != 0:
                     // Activity grade categories.
-                    $sql = "SELECT (gg.finalgrade / gg.rawgrademax * 100) grade
+
+                    if($userids_sql == -1) {
+                        $sql = "SELECT (gg.finalgrade / gg.rawgrademax * 100) grade
                               FROM {grade_items} gi
                               JOIN {grade_grades} gg ON gi.id = gg.itemid
                              WHERE gi.itemtype = :itemtype
                                AND gg.userid = :userid
                                AND gi.courseid = :course";
+                    } else {
+                        $sql = "SELECT (gg.finalgrade / gg.rawgrademax * 100) grade
+                              FROM {grade_items} gi
+                              JOIN {grade_grades} gg ON gi.id = gg.itemid
+                             WHERE gi.itemtype = :itemtype
+                               AND gg.userid = :userid
+                                AND gg.userid IN ($userids_sql)
+                               AND gi.courseid = :course";
+                    }
+
+
+
                     $params['itemtype'] = 'mod';
                     $params['userid'] = $userid;
                     $params['course'] = $course;
@@ -418,6 +497,32 @@ class gradeblock extends block_base {
     public function get_modal_table($filter, $range) {
         global $DB;
 
+        $userids_sql = '';
+        $sql = "SELECT valor 
+        FROM {infrasvenhelper} 
+        WHERE userid = :userid 
+        AND action = 'selecteddept' 
+        ORDER BY id DESC 
+        LIMIT 1";
+
+        $params = ['userid' => $_SESSION['USER']->id];
+        $selecteddep = $DB->get_field_sql($sql, $params);
+
+        $userlist = \company::get_recursive_department_users($selecteddep);
+
+        // Extract user IDs from the user list
+        if($selecteddep != -1) {
+            if (!empty($userlist)) {
+                $userids = array_column($userlist, 'userid');
+                $userids_sql = implode(',', array_map('intval', $userids)); // Safely cast IDs to integers
+            } else {
+                // Set to 0 if the user list is empty
+                $userids_sql = '0';
+            }
+        } else {
+            $userids_sql = -1;
+        }
+
         $params = [];
         $rangecondition = "";
 
@@ -479,7 +584,9 @@ class gradeblock extends block_base {
                     );
                     // Students grade categories.
                     $fullname = $DB->sql_fullname('u.firstname', 'u.lastname');
-                    $sql = "SELECT $fullname fullname, u.email, (gg.finalgrade / gg.rawgrademax * 100) grade
+
+                    if($userids_sql == -1) {
+                        $sql = "SELECT $fullname fullname, u.email, (gg.finalgrade / gg.rawgrademax * 100) grade
                               FROM {{$userstable}} ut
                               JOIN {user} u ON ut.tempid = u.id
                               JOIN {grade_grades} gg ON ut.tempid = gg.userid
@@ -487,6 +594,19 @@ class gradeblock extends block_base {
                              WHERE $rangecondition
                                AND gi.itemtype = :itemtype
                                AND gi.courseid = :course";
+                    } else {
+                        $sql = "SELECT $fullname fullname, u.email, (gg.finalgrade / gg.rawgrademax * 100) grade
+                        FROM {{$userstable}} ut
+                        JOIN {user} u ON ut.tempid = u.id
+                        JOIN {grade_grades} gg ON ut.tempid = gg.userid
+                        JOIN {grade_items} gi ON gg.itemid = gi.id
+                       WHERE $rangecondition
+                         AND gi.itemtype = :itemtype
+                         AND gg.userid IN ($userids_sql)
+                         AND gi.courseid = :course";
+                    }
+
+
                     $params['itemtype'] = 'course';
                     $params['course'] = $course->id;
                     $records = $DB->get_recordset_sql($sql, $params);
@@ -525,13 +645,27 @@ class gradeblock extends block_base {
                 fullname($DB->get_record('user', ['id' => $filter->student]));
                 foreach ($courses as $course) {
                     // Students grade categories.
-                    $sql = "SELECT (gg.finalgrade / gg.rawgrademax * 100) grade
+
+                    if($userids_sql == -1) {
+                        $sql = "SELECT (gg.finalgrade / gg.rawgrademax * 100) grade
                               FROM {grade_grades} gg
                               JOIN {grade_items} gi ON gg.itemid = gi.id
                                                     AND gi.itemtype = :itemtype
                                                     AND gi.courseid = :course
                              WHERE $rangecondition
                                AND gg.userid = :userid";
+                    } else {
+                        $sql = "SELECT (gg.finalgrade / gg.rawgrademax * 100) grade
+                              FROM {grade_grades} gg
+                              JOIN {grade_items} gi ON gg.itemid = gi.id
+                                                    AND gi.itemtype = :itemtype
+                                                    AND gi.courseid = :course
+                             WHERE $rangecondition
+                               AND gg.userid = :userid 
+                               AND gg.userid in ($userids_sql)";
+                    }
+
+
                     $params['itemtype'] = 'course';
                     $params['course'] = $course->id;
                     $params['userid'] = $filter->student;
@@ -560,7 +694,9 @@ class gradeblock extends block_base {
                 ];
                 // Students grade categories.
                 $fullname = $DB->sql_fullname('u.firstname', 'u.lastname');
-                $sql = "SELECT cm.id, (gg.finalgrade / gg.rawgrademax * 100) grade
+
+                if($userids_sql == -1) {
+                    $sql = "SELECT cm.id, (gg.finalgrade / gg.rawgrademax * 100) grade
                           FROM {grade_items} gi
                           JOIN {modules} m ON gi.itemmodule = m.name
                           JOIN {course_modules} cm ON gi.courseid = cm.course
@@ -571,6 +707,22 @@ class gradeblock extends block_base {
                          WHERE $rangecondition
                            AND gg.userid = :userid
                            AND gi.courseid = :course";
+                } else {
+                    $sql = "SELECT cm.id, (gg.finalgrade / gg.rawgrademax * 100) grade
+                    FROM {grade_items} gi
+                    JOIN {modules} m ON gi.itemmodule = m.name
+                    JOIN {course_modules} cm ON gi.courseid = cm.course
+                                            AND gi.iteminstance = cm.instance
+                                            AND gi.itemtype = :itemtype
+                                            AND m.id = cm.module
+                    JOIN {grade_grades} gg ON gg.itemid = gi.id
+                   WHERE $rangecondition
+                     AND gg.userid = :userid
+                     AND gi.courseid = :course 
+                     AND gg.userid IN ($userids_sql)";
+                }
+
+
                 $params['itemtype'] = 'mod';
                 $params['course'] = $filter->course;
                 $params['userid'] = $filter->student;
