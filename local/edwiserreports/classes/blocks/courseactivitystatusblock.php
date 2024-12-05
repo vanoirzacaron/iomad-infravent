@@ -191,7 +191,7 @@ class courseactivitystatusblock extends block_base {
      *
      * @return object
      */
-    public function calculate_insight($filter, $coursetable, $userstable, $data) {
+    public function calculate_insight($filter, $coursetable, $userstable, $data, $userids_sql) {
         global $DB;
         $totalcompletion = 0;
         $count = 0;
@@ -263,6 +263,7 @@ class courseactivitystatusblock extends block_base {
                 break;
         }
 
+        if($userids_sql != -1) {
         $sql = "SELECT count(cmc.id) AS completed
                   FROM {{$coursetable}} ct
                   JOIN {course_modules} cm ON ct.tempid = cm.course
@@ -272,11 +273,22 @@ class courseactivitystatusblock extends block_base {
                   $groupjoin
                  WHERE cmc.completionstate <> 0
                    AND floor(cmc.timemodified / 86400) BETWEEN :startdate AND :enddate";
-
         if ($userid !== 0) { // User is selected in dropdown.
             $sql .= ' AND cmc.userid = :userid ';
             $params['userid'] = $userid;
         }
+    }else {
+        $sql = "SELECT count(cmc.id) AS completed
+                  FROM {{$coursetable}} ct
+                  JOIN {course_modules} cm ON ct.tempid = cm.course
+                  JOIN {course_modules_completion} cmc ON cm.id = cmc.coursemoduleid $nongroup
+                  JOIN {{$userstable}} ut ON cmc.userid = ut.tempid
+                  $cohortjoin
+                  $groupjoin
+                 WHERE cmc.completionstate <> 0
+                   AND floor(cmc.timemodified / 86400) BETWEEN :startdate AND :enddate
+                   AND cmc.userid IN ($userids_sql)";
+    }
 
         $count = $params['enddate'] - $params['startdate'] + 1;
 
@@ -409,7 +421,9 @@ class courseactivitystatusblock extends block_base {
                             break;
                     }
                     $asubstatus = $DB->sql_compare_text('asub.status', 255);
-                    $subsql = "SELECT floor(asub.timecreated / 86400) subdate, count(asub.id) submission
+
+                    if($userids_sql == -1) {
+                        $subsql = "SELECT floor(asub.timecreated / 86400) subdate, count(asub.id) submission
                               FROM {{$coursetable}} ct
                               JOIN {assign} a ON ct.tempid = a.course
                               JOIN {assign_submission} asub ON a.id = asub.assignment AND $asubstatus = :status $nongroup
@@ -418,6 +432,19 @@ class courseactivitystatusblock extends block_base {
                               $groupjoin
                              WHERE asub.timecreated >= :startdate
                                AND asub.timecreated <= :enddate ";
+                    } else {
+                        $subsql = "SELECT floor(asub.timecreated / 86400) subdate, count(asub.id) submission
+                        FROM {{$coursetable}} ct
+                        JOIN {assign} a ON ct.tempid = a.course
+                        JOIN {assign_submission} asub ON a.id = asub.assignment AND $asubstatus = :status $nongroup
+                        JOIN {{$userstable}} ut ON asub.userid = ut.tempid
+                        $cohortjoin
+                        $groupjoin
+                       WHERE asub.timecreated >= :startdate
+                         AND asub.timecreated <= :enddate
+                          AND asub.userid IN ($userids_sql)";
+                    }
+
                     $cohortjoin = "";
                     if ($cohort != 0) {
                         $cohortjoin = "JOIN {cohort_members} chm ON cmc.userid = chm.userid AND chm.cohortid = :cohort";
@@ -441,6 +468,8 @@ class courseactivitystatusblock extends block_base {
                             $groupjoin = "JOIN {groups_members} gm ON cmc.userid = gm.userid AND gm.groupid = :group";
                             break;
                     }
+
+                    if($userids_sql == -1) {
                     $comsql = "SELECT floor(cmc.timemodified / 86400) comdate, count(cmc.id) completed
                                  FROM {{$coursetable}} ct
                                  JOIN {course_modules} cm ON ct.tempid = cm.course
@@ -451,6 +480,19 @@ class courseactivitystatusblock extends block_base {
                                 WHERE cmc.completionstate <> 0
                                   AND cmc.timemodified >= :startdate
                                   AND cmc.timemodified <= :enddate ";
+                    } else {
+                        $comsql = "SELECT floor(cmc.timemodified / 86400) comdate, count(cmc.id) completed
+                        FROM {{$coursetable}} ct
+                        JOIN {course_modules} cm ON ct.tempid = cm.course
+                        JOIN {course_modules_completion} cmc ON cm.id = cmc.coursemoduleid $nongroup
+                        $cohortjoin
+                        $groupjoin
+                        JOIN {{$userstable}} ut ON cmc.userid = ut.tempid
+                       WHERE cmc.completionstate <> 0
+                         AND cmc.timemodified >= :startdate
+                         AND cmc.timemodified <= :enddate 
+                         AND cmc.userid IN ($userids_sql)";
+                    }
 
                     $subsql .= " GROUP BY floor(asub.timecreated / 86400)";
                     $comsql .= " GROUP BY floor(cmc.timemodified / 86400)";
@@ -498,7 +540,7 @@ class courseactivitystatusblock extends block_base {
 
             // If insight variable is true then only calculate insight.
             if ($insight) {
-                $response['insight'] = $this->calculate_insight($filter, $coursetable, $userstable, $response);
+                $response['insight'] = $this->calculate_insight($filter, $coursetable, $userstable, $response, $userids_sql);
             }
 
             // Reassign dates. To tackle exporting data.
