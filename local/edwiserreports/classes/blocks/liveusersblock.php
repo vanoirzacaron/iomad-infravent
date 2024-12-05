@@ -83,9 +83,9 @@ class liveusersblock extends block_base {
      * @param int $timetoshowusers Number of seconds to show online users
      * @return array
      */
-    protected static function get_users($now, $timetoshowusers) {
+    protected static function get_users($now, $timetoshowusers, $userids_sql) {
         global $USER, $DB, $CFG;
-
+        
         $timefrom = 100 * floor(($now - $timetoshowusers) / 100); // Round to nearest 100 seconds for better query cache.
 
         $groupmembers = "";
@@ -118,6 +118,7 @@ class liveusersblock extends block_base {
         $params['userid'] = $USER->id;
         $params['name'] = 'block_online_users_uservisibility';
 
+        if($userids_sql != -1) {
         $sql = "SELECT $userfields $lastaccess $uservisibility
                     FROM {user} u $groupmembers
                 LEFT JOIN {user_preferences} up ON up.userid = u.id
@@ -128,6 +129,19 @@ class liveusersblock extends block_base {
                         $uservisibilityselect
                         $groupselect $groupby
                 ORDER BY lastaccess DESC ";
+        } else {
+            $sql = "SELECT $userfields $lastaccess $uservisibility
+            FROM {user} u $groupmembers
+        LEFT JOIN {user_preferences} up ON up.userid = u.id
+                AND up.name = :name
+            WHERE u.lastaccess > :timefrom
+            AND u.id IN ($userids_sql)
+                AND u.lastaccess <= :now
+                AND u.deleted = 0
+                $uservisibilityselect 
+                $groupselect $groupby
+        ORDER BY lastaccess DESC ";
+        }
         return $DB->get_records_sql($sql, $params);
     }
 
@@ -138,38 +152,74 @@ class liveusersblock extends block_base {
     public static function get_online_users() {
         global $DB;
 
+        $userids_sql = '';
+        $sql = "SELECT valor 
+        FROM {infrasvenhelper} 
+        WHERE userid = :userid 
+        AND action = 'selecteddept' 
+        ORDER BY id DESC 
+        LIMIT 1";
+
+        $params = ['userid' => $_SESSION['USER']->id];
+        $selecteddep = $DB->get_field_sql($sql, $params);
+
+        $userlist = \company::get_recursive_department_users($selecteddep);
+
+        // Extract user IDs from the user list
+        if($selecteddep != -1) {
+            if (!empty($userlist)) {
+                $userids = array_column($userlist, 'userid');
+                $userids_sql = implode(',', array_map('intval', $userids)); // Safely cast IDs to integers
+            } else {
+                // Set to 0 if the user list is empty
+                $userids_sql = '0';
+            }
+        } else {
+            $userids_sql = -1;
+        }
+
         $timenow = time();
         $activeusertimeout = 60;
         $inactiveusertimeout = 30 * 60;
 
-        $activeusers = self::get_users($timenow, $activeusertimeout);
-        $inactiveusers = self::get_users($timenow, $inactiveusertimeout);
+        $activeusers = self::get_users($timenow, $activeusertimeout, $userids_sql);
+        $inactiveusers = self::get_users($timenow, $inactiveusertimeout, $userids_sql);
 
-        $users = array();
-        foreach ($inactiveusers as $inactiveuser) {
-            $user = array();
-            $user["name"] = fullname($inactiveuser);
+        // Convert $userids_sql into an array
+$userids = array_map('intval', explode(',', $userids_sql)); // Assuming IDs are integers
 
-            if ($inactiveuser->lastlogin != 0) {
-                $user["lastlogin"] = '<div class="d-none">' . $inactiveuser->lastlogin . '</div>';
-                $user["lastlogin"] .= format_time($timenow - $inactiveuser->lastlogin);
-            } else if ($inactiveuser->currentlogin != 0) {
-                $user["lastlogin"] = '<div class="d-none">' . $inactiveuser->currentlogin . '</div>';
-                $user["lastlogin"] .= format_time($timenow - $inactiveuser->currentlogin);
-            } else {
-                $user["lastlogin"] = get_string('never');
-            }
+$users = array();
 
-            if (array_key_exists($inactiveuser->id, $activeusers)) {
-                $user["status"] = html_writer::tag("span", get_string('active'), array("class" => "text-success"));
-            } else {
-                $user["status"] = html_writer::tag("span", get_string('inactive'), array(
-                        "class" => "text-danger"
-                    )
-                );
-            }
-            $users[] = array_values($user);
-        }
-        return $users;
+foreach ($inactiveusers as $inactiveuser) {
+    // Skip users not in $userids
+    if (!in_array($inactiveuser->id, $userids)) {
+        continue;
+    }
+
+    $user = array();
+    $user["name"] = fullname($inactiveuser);
+
+    if ($inactiveuser->lastlogin != 0) {
+        $user["lastlogin"] = '<div class="d-none">' . $inactiveuser->lastlogin . '</div>';
+        $user["lastlogin"] .= format_time($timenow - $inactiveuser->lastlogin);
+    } else if ($inactiveuser->currentlogin != 0) {
+        $user["lastlogin"] = '<div class="d-none">' . $inactiveuser->currentlogin . '</div>';
+        $user["lastlogin"] .= format_time($timenow - $inactiveuser->currentlogin);
+    } else {
+        $user["lastlogin"] = get_string('never');
+    }
+
+    if (array_key_exists($inactiveuser->id, $activeusers)) {
+        $user["status"] = html_writer::tag("span", get_string('active'), array("class" => "text-success"));
+    } else {
+        $user["status"] = html_writer::tag("span", get_string('inactive'), array(
+                "class" => "text-danger"
+            )
+        );
+    }
+    $users[] = array_values($user);
+}
+
+return $users;
     }
 }
