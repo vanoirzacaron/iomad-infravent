@@ -615,10 +615,9 @@ class courseactivitiessummary extends base {
         $totaltimespent = isset($timespent->totaltime) ? ($rtl ? date('s:i:H', mktime(0, 0, $timespent->totaltime)) : date('H:i:s', mktime(0, 0, $timespent->totaltime))) : 0;
         // As this returns section with 'all' option also
         $totalsections = count($mods);
-
         $course = $DB->get_record('course', ['id' => $filters->course]);
         // Get category.
-        $category = core_course_category::get($course->category);
+        $category = 2;
 
         // Drop temp table
         utility::drop_temp_table($userstable);
@@ -648,7 +647,7 @@ class courseactivitiessummary extends base {
             'header' => array(
                 'course' => true,
                 'coursename' => format_string($course->fullname, true, ['context' => \context_system::instance()]),
-                'category' => format_string($category->get_formatted_name(), true, ['context' => \context_system::instance()]),
+                //'category' => format_string($category->get_formatted_name(), true, ['context' => \context_system::instance()]),
                 'filtertags' => $rtl ? array_reverse($tags) : $tags
             ),
             'body' => array(
