@@ -726,12 +726,51 @@ class allcoursessummary_renderable implements renderable, templatable {
      * @return stdClass|array
      */
     public function export_for_template(renderer_base $output) {
-        global $CFG, $USER;
+        global $CFG, $USER, $DB;
 
         $allcoursessummary = new \local_edwiserreports\reports\allcoursessummary();
         $authentication = new authentication();
         $output = new stdClass();
+
+
+// Retrieve the selected department from the POST request
+$selecteddepartmentid = optional_param('selecteddepartament', '', PARAM_INT);
+
+// Check if a department was selected
+if (!empty($selecteddepartmentid)) {
+    // Prepare the fields for the database record
+    $record = new stdClass();
+    $record->userid = $USER->id; // User ID
+    $record->valor = $selecteddepartmentid; // Selected department ID
+    $record->action = 'selecteddept';
+
+    try {
+        // Check if a record for this user and action already exists
+        $existingrecord = $DB->get_record('infrasvenhelper', [
+            'userid' => $USER->id,
+            'action' => 'selecteddept'
+        ]);
+
+        if ($existingrecord) {
+            // If a record exists, update it with the new value
+            $record->id = $existingrecord->id; // Set the record ID to update
+            $DB->update_record('infrasvenhelper', $record);
+        } else {
+            // If no record exists, insert a new one
+            $DB->insert_record('infrasvenhelper', $record);
+        }
+    } catch (dml_exception $e) {
+        // Handle the exception, log error or display message
+        error_log("Failed to save record in 'infrasvenhelper': " . $e->getMessage());
+        // Optionally display an error message to the user
+        throw new moodle_exception('dberror', 'error', '', null, $e->getMessage());
+    }
+}
+
         $output->departmentdropdown = $this->renderDepartamentDropdown();
+
+
+
 
         if ($allcoursessummary->can_edit_report_capability('allcoursessummary')) {
             $output->canedit = true;
