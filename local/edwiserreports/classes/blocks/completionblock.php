@@ -526,13 +526,13 @@ class completionblock extends block_base {
         $startdate = empty($course->startdate) ? get_string('never', 'local_edwiserreports') : ( $rtl ? date("A i:h Y M d", $course->startdate) : date("d M Y h:i A", $course->startdate));
 
         // Get category.
-        $category = core_course_category::get($course->category);
+        //$category = core_course_category::get($course->category);
 
         return array(
             'header' => array(
                 'course' => true,
                 'coursename' => format_string($course->fullname, true, ['context' => \context_system::instance()]),
-                'category' => $category->get_formatted_name(),
+                //'category' => $category->get_formatted_name(),
                 'filtertags' => $rtl ? array_reverse($tags) : $tags
             ),
             'body' => array(
