@@ -584,9 +584,8 @@ class block_base {
         }
 
         $visiblecourses = [];
-
         // Admin or Manager.
-        if (is_siteadmin($userid) || has_capability('moodle/site:configview', context_system::instance(), $userid)) {
+        if (is_siteadmin($userid) || has_capability('block/iomad_company_admin:company_edit', context_system::instance(), $userid) ||has_capability('moodle/site:configview', context_system::instance(), $userid)) {
             $courses = get_courses('all', 'c.fullname');
 
             foreach ($courses as $course) {
