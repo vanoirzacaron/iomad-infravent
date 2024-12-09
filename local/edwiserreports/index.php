@@ -80,6 +80,41 @@ if (!empty($selecteddepartmentid)) {
         // Optionally display an error message to the user
         throw new moodle_exception('dberror', 'error', '', null, $e->getMessage());
     }
+} else {
+    $sql = "SELECT valor 
+    FROM {infrasvenhelper} 
+    WHERE userid = :userid 
+    AND action = 'selecteddept' 
+    ORDER BY id DESC 
+    LIMIT 1";
+
+$params = ['userid' => $USER->id];
+$selecteddep = $DB->get_field_sql($sql, $params);
+
+// Step 2: If the record does not exist, insert the first department
+if ($selecteddep === false) {
+// Get the company ID for the current user
+$companyid = \iomad::get_my_companyid(context_system::instance(), false);
+
+// Fetch the first department for this company
+$sql = "SELECT id, name 
+        FROM {department} 
+        WHERE company = :companyid 
+        ORDER BY id ASC 
+        LIMIT 1";
+$params = ['companyid' => $companyid];
+$firstDepartment = $DB->get_record_sql($sql, $params);
+
+if (!empty($firstDepartment)) {
+    // Insert a new record into infrasvenhelper
+    $data = new stdClass();
+    $data->userid = $USER->id;
+    $data->action = 'selecteddept';
+    $data->valor = $firstDepartment->id; // Use the ID of the first department
+    $data->timecreated = time(); // Current timestamp
+    $DB->insert_record('infrasvenhelper', $data);
+}
+}
 }
 
 
