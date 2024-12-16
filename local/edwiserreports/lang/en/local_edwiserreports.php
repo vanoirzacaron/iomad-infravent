@@ -41,6 +41,7 @@ $string['viewdetails'] = 'View details';
 $string['invalidreport'] = 'Invalid report';
 $string['reportnotexist'] = 'The report does not exist';
 $string['noaccess'] = "You do not have access. Either you are not enrolled in any course or access to All Groups is prevented, and you are not part of any group.";
+$string['programs'] = "Programs";
 
 // Filter strings.
 $string['cohort'] = 'Cohort';

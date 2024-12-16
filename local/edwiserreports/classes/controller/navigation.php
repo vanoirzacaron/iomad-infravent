@@ -90,7 +90,7 @@ class navigation {
                 'visible' => true
             ],
             'course' => [
-                'label' => get_string('course'),
+                'label' => get_string('programs', 'local_edwiserreports'),
                 'visible' => false,
                 'nodes' => [
                     'allcoursessummary' => [
