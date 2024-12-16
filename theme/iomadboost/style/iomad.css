@@ -104,6 +104,15 @@ div.iomadlink, div.iomadlinkreports {
 }
 
 /* Infravent CSS */
+@media (max-width: 1200px) {
+  /* Set the td inside this tr to behave as block */
+  tr:has(div.mediaplugin.mediaplugin_videojs.d-block) td {
+      display: block;
+      width: 135%!important;
+      height: 100%!important;
+  }
+}
+
 /* Remove Home link */
 .moremenu li[data-key="home"] {
   display: none;
@@ -111,10 +120,23 @@ div.iomadlink, div.iomadlinkreports {
 .drawercontent a[href*="?redirect=0"] {
   display: none;
 }
+
 /* Remove My courses link */
 .moremenu li[data-key="mycourses"] {
-  display: none;
+display: none;
 }
 .drawercontent a[href*="my/courses"] {
+display: none;
+}
+
+/* Make center div larger */
+@media (min-width: 768px) {
+body .pagelayout-standard #page.drawers .main-inner, 
+body.limitedwidth #page.drawers .main-inner {
+  max-width: 1150px;
+}
+}
+
+.edwiserreports-header .edwiserreport-title h2.m-0 {
   display: none;
 }
