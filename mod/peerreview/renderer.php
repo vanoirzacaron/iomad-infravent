@@ -2327,40 +2327,29 @@ class mod_peerreview_renderer extends plugin_renderer_base
 
         $file = $DB->get_record_sql($sql, $params);
 
-
-        // die(var_dump($files));
-
         // Start the anchor tag to make the entire card clickable
         $output = html_writer::start_tag('a', array('href' => $review_url, 'class' => 'card', 'style' => 'text-decoration: none; color: inherit;'));
 
-        // Start the card-body div
-        // $output .= html_writer::start_tag('div', array('class' => 'card-body', 'style' => 'position: relative; overflow: hidden; width: ' . $slice_width . 'px; height: ' . $slice_height . 'px;'));
-
-        $slice_width = 220; // Width of each slice
-        $slice_height = 130; // Height of each slice
-        $slices_per_row = 4; // Number of slices per row in the large image
-        $output .= html_writer::start_tag('div', array('class' => 'card-body', 'style' => 'zoom: 255%; position: relative; overflow: hidden; height: ' . $slice_height . 'px;'));
+        $output .= html_writer::start_tag('div', array('class' => 'card-body', 'style' => 'padding: 0px;'));
 
         if (empty($file)) {
             // Large image dimensions and source
-            $large_image_url = '/mod/peerreview/pix/projectsbg.jpeg'; // Replace with the actual path to your large image
+            // Calculate the image index based on submission ID
+            $imageIndex = $submission->id % 10;
 
-            // Calculate the position of the slice based on the submission ID
-            $slice_index = ($submission->id - 1) % ($slices_per_row * $slices_per_row); // Assuming 100 slices in the large image (10x10)
-            $x_offset = ($slice_index % $slices_per_row) * $slice_width;
-            $y_offset = floor($slice_index / $slices_per_row) * $slice_height;
+            // Map the index to an image file (0.jpg, 1.jpg, ..., 9.jpg)
+            $imageFile = $imageIndex . '.webp';
 
-            // Array of saturation values in the specified order
-            $saturation_values = [15, 200, 50, 20, 100, 140, 15, 220];
-            // Determine the saturation value based on the submission ID
-            $saturation = $saturation_values[($submission->id - 1) % count($saturation_values)];
+            // Path to the image (you can modify this based on where your images are stored)
+            $imagePath = '/mod/peerreview/pix/' . $imageFile;
 
             // Add the large image inside the card-body, positioned to show the correct slice
             $output .= html_writer::empty_tag('img', array(
-                'src' => $large_image_url,
+                'src' => $imagePath,
                 'alt' => 'Image',
-                'style' => 'position: absolute; top: -' . $y_offset . 'px; left: -' . $x_offset . 'px; width: ' . ($slices_per_row * $slice_width) . 'px; height: auto; filter: saturate(' . $saturation . '%);'
+                'style' => 'max-width: 100%;width: 100%;',
             ));
+            
         } else {
 
             // Generate the URL for the file
