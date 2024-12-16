@@ -27,6 +27,8 @@ defined('MOODLE_INTERNAL') || die;
 
 use \company;
 use \iomad;
+use core_user;
+use core_text;
 
 //class user_edit_form extends company_moodleform {
 class user_edit_form extends \moodleform {
@@ -40,9 +42,10 @@ class user_edit_form extends \moodleform {
     protected $companyname = '';
     protected $licenseid = 0;
     protected $licensecourses = array();
+    protected $subhierarchieslist = array();
 
     public function __construct($actionurl, $companyid, $departmentid, $licenseid=0) {
-        global $CFG, $USER, $companycontext;
+        global $CFG, $USER, $output, $companycontext;
 
         $this->selectedcompany = $companyid;
         $this->departmentid = $departmentid;
@@ -54,15 +57,21 @@ class user_edit_form extends \moodleform {
         $parentlevel = company::get_company_parentnode($company->id);
         $this->companydepartment = $parentlevel->id;
         $systemcontext = \context_system::instance();
+        $departmenttree = array();
 
         if (\iomad::has_capability('block/iomad_company_admin:edit_all_departments', $this->companycontext)) {
             $userhierarchylevel = $parentlevel->id;
+            $userlevels = array($parentlevel->id => $parentlevel->id);
         } else {
-            $userlevel = $company->get_userlevel($USER);
-            $userhierarchylevel = key($userlevel);
+            $userlevels = $company->get_userlevel($USER);
+            $userhierarchylevel = key($userlevels);
         }
+        foreach ($userlevels as $userlevelid => $userlevel) {
+            $this->subhierarchieslist = $this->subhierarchieslist + \company::get_all_subdepartments($userlevelid);
+            $departmenttree[] = \company::get_all_subdepartments_raw($userlevelid);
+        }
+        $this->treehtml = $output->department_tree($departmenttree, optional_param('deptid', 0, PARAM_INT));
 
-        $this->subhierarchieslist = company::get_all_subdepartments($userhierarchylevel);
         if ($this->departmentid == 0) {
             $departmentid = $userhierarchylevel;
         } else {
@@ -147,7 +156,9 @@ class user_edit_form extends \moodleform {
 
         // Deal with company optional fields.
         $mform->addElement('header', 'category_id', get_string('advanced'));
-        $output->display_tree_selector_form($this->company, $mform, 0, '', false, true);
+        $mform->addElement('static', 'departmenttext', get_string('department', 'block_iomad_company_admin'));
+        $mform->addElement('html', $this->treehtml);
+        $mform->addElement('select', 'deptid', get_string('department', 'block_iomad_company_admin'), $this->subhierarchieslist, 0);
 
         // Add in company/department manager checkboxes.
         $managerarray = array();
@@ -318,6 +329,19 @@ class user_edit_form extends \moodleform {
 
         $usernew = (object)$usernew;
 
+        // Check allowed characters. - We only care if we are being passed a username.
+        if (!empty($CFG->iomad_allow_username)) {
+            if (!$usernew->use_email_as_username) {
+                if (empty($usernew->username)) {
+                    $errors['username'] = get_string('required');
+                } else if ($usernew->username !== core_text::strtolower($usernew->username)) {
+                    $errors['username'] = get_string('usernamelowercase');
+                } else if ($usernew->username !== core_user::clean_field($usernew->username, 'username')) {
+                        $errors['username'] = get_string('invalidusername');
+                }
+            }
+        }
+
         // Validate email.
         if ($existingusers = $DB->get_records('user', array('email' => $usernew->email, 'mnethostid' => $CFG->mnet_localhost_id))) {
             foreach ($existingusers as $existinguser) {
@@ -327,6 +351,18 @@ class user_edit_form extends \moodleform {
                         break;
                     }
                 }
+            }
+        }
+
+        // Validate email as username in the same company.
+        if ($usernew->use_email_as_username) {
+            if ($DB->get_records_sql("SELECT u.id FROM {user} u
+                                      JOIN {company_users} cu ON u.id = cu.userid
+                                      WHERE cu.companyid = :companyid
+                                      AND u.username = :email",
+                                      ['companyid' => $this->company->id,
+                                       'email' => $usernew->email])) {
+                        $errors['email'] = get_string('emailexists');
             }
         }
 
@@ -369,6 +405,7 @@ class user_edit_form extends \moodleform {
                 }
             }
         }
+
         return $errors;
     }
 

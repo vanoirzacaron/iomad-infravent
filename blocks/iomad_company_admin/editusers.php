@@ -103,9 +103,16 @@ if ($showall) {
     $params['showall'] = $showall;
 }
 
+iomad::require_capability('block/iomad_company_admin:view_editusers', $companycontext);
+
 // Deal with edit buttons.
 if ($edit != -1) {
     $USER->editing = $edit;
+}
+
+if (!iomad::has_capability('block/iomad_company_admin:editusers', $companycontext) &&
+    !iomad::has_capability('block/iomad_company_admin:editallusers', $companycontext)) {
+    $USER->editing = false;
 }
 
 // Set the name for the page.
@@ -166,16 +173,15 @@ if ($departmentid == 0) {
     $departmentid = $userhierarchylevel;
 }
 
-if (!(iomad::has_capability('block/iomad_company_admin:editusers', $companycontext)
-    or iomad::has_capability('block/iomad_company_admin:editallusers', $companycontext))) {
-    throw new moodle_exception('nopermissions', 'error', '', 'edit/delete users');
+if (!iomad::has_capability('block/iomad_company_admin:view_editusers', $companycontext)) {
+    throw new moodle_exception('nopermissions', 'error', '', 'view edit users');
 }
 
 // Set up the filter form.
 if (iomad::has_capability('block/iomad_company_admin:company_add', $companycontext)) {
-    $mform = new iomad_user_filter_form(null, array('companyid' => $selectedcompanyid, 'useshowall' => true, 'addusertype' => true));
+    $mform = new \local_iomad\forms\user_search_form(null, array('companyid' => $selectedcompanyid, 'useshowall' => true, 'addusertype' => true));
 } else {
-    $mform = new iomad_user_filter_form(null, array('companyid' => $selectedcompanyid, 'addusertype' => true));
+    $mform = new \local_iomad\forms\user_search_form(null, array('companyid' => $selectedcompanyid, 'addusertype' => true));
 }
 $mform->set_data(array('departmentid' => $departmentid, 'usertype' => $usertype));
 $mform->set_data($params);
@@ -260,7 +266,6 @@ $strpassword = get_string('resetpassword', 'block_iomad_company_admin');
 $strpasswordcheck = get_string('resetpasswordcheck', 'block_iomad_company_admin');
 $strunsuspend = get_string('unsuspend', 'block_iomad_company_admin');
 $strunsuspendcheck = get_string('unsuspendcheck', 'block_iomad_company_admin');
-$strshowallusers = get_string('showallusers');
 $strenrolment = get_string('userenrolments', 'block_iomad_company_admin');
 $struserlicense = get_string('userlicenses', 'block_iomad_company_admin');
 $strshowall = get_string('showallcompanies', 'block_iomad_company_admin');
@@ -288,6 +293,10 @@ if ($confirmuser and confirm_sesskey()) {
     }
 
 } else if ($password and confirm_sesskey()) {
+    if (!iomad::has_capability('block/iomad_company_admin:editusers', $companycontext)) {
+        throw new moodle_exception('nopermissions', 'error', '', 'reset a user');
+    }
+
     if (!$user = $DB->get_record('user', array('id' => $password))) {
         throw new moodle_exception('nousers');
     }
@@ -481,7 +490,11 @@ if (!$showall) {
 }
 
 // Display the user filter form.
+echo html_writer::start_tag('div', array('class' => 'reporttablecontrols', 'style' => 'padding-left: 15px'));
+echo html_writer::start_tag('div', array('class' => 'iomadusersearchform'));
 $mform->display();
+echo html_writer::end_tag('div');
+echo html_writer::end_tag('div');
 
 // Build the table.
 // Do we have any additional reporting fields?
@@ -539,8 +552,7 @@ if (iomad::has_capability('block/iomad_company_admin:editallusers', $companycont
         $sqlsearch = " AND 1 = 0";
     }
 
-} else if (iomad::has_capability('block/iomad_company_admin:editusers', $companycontext)) {   // Check if has role edit company users.
-
+} else {
     // Get users company association.
     $departmentusers = company::get_recursive_department_users($departmentid);
     if (count($departmentusers) > 0) {
@@ -560,9 +572,6 @@ if (iomad::has_capability('block/iomad_company_admin:editallusers', $companycont
     } else {
         $sqlsearch = "AND 1 = 0";
     }
-} else {
-    // Can't edit any users.
-    $sqlsearch = " AND 1 = 0";
 }
 
 // return the right type of user.

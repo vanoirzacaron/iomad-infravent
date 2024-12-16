@@ -457,7 +457,7 @@ class iomad {
                 $mycompanycategories = $DB->get_records_sql("SELECT DISTINCT cc.id
                                                              FROM {course_categories} cc
                                                              WHERE " . $DB->sql_like('cc.path', ':companycategorysearch'),
-                                                             ['companycategorysearch' => '/' . $company->category . '%']);
+                                                             ['companycategorysearch' => '/' . $company->category . '/%']);
                 $companycategoriescache->set($company->id, $mycompanycategories);
             }
         } else {
@@ -561,6 +561,92 @@ class iomad {
         }
 
         return $iomadcourses;
+    }
+
+    /**
+     * IOMAD:
+     * Add in potential courses for the current user
+     * so they can see the calendar events in their calendar
+     * @param array $courses list of courses objects
+     * @return array filtered list of courses
+     */
+    public static function add_calendar_trainingevent_courses( $courses ) {
+        global $DB, $USER;
+
+        $context = context_system::instance();
+        $companyid = self::get_my_companyid($context, false);
+
+        if (!empty($companyid)) {
+            $companyselfenrolcourses = $DB->get_records_sql("SELECT DISTINCT c.id,c.category,c.sortorder,c.shortname,c.fullname,c.idnumber,c.startdate,c.defaultgroupingid,c.groupmodeforce,c.groupmode, c.visible
+                                                             FROM {enrol} e
+                                                             JOIN {course} c ON (e.courseid = c.id)
+                                                             JOIN {trainingevent} t ON (c.id = t.course and e.courseid = t.course)
+                                                             WHERE e.enrol = :enrol
+                                                             AND e.status = 0
+                                                             AND c.id IN (
+                                                               SELECT courseid FROM {company_course}
+                                                               WHERE companyid = :companyid)",
+                                                             array('companyid' => $companyid,
+                                                                   'enrol' => 'self'));
+
+            // Add them.
+            foreach ($companyselfenrolcourses as $course) {
+                $courses[$course->id] = $course;
+            }
+            $sharedselfenrolcourses = $DB->get_records_sql("SELECT DISTINCT c.id,c.category,c.sortorder,c.shortname,c.fullname,c.idnumber,c.startdate,c.defaultgroupingid,c.groupmodeforce,c.groupmode, c.visible
+                                                            FROM {enrol} e
+                                                            JOIN {course} c ON (e.courseid = c.id)
+                                                            JOIN {trainingevent} t ON (c.id = t.course and e.courseid = t.course)
+                                                            WHERE e.enrol = :enrol
+                                                             AND e.status = 0
+                                                             AND c.id IN (
+                                                               SELECT courseid FROM {iomad_courses}
+                                                               WHERE shared = 1)",
+                                                            array('enrol' => 'self'));
+            // Add them.
+            foreach ($sharedselfenrolcourses as $course) {
+                $courses[$course->id] = $course;
+            }
+
+            // Check if there are any courses from 'blanket' licenses.
+            if ($blanketlicenses = $DB->get_records_sql("SELECT * FROM {companylicense}
+                                                         WHERE companyid = :companyid
+                                                         AND type = :type
+                                                         AND startdate < :startdate
+                                                         AND expirydate > :expirydate",
+                                                        ['companyid' => $companyid, 'type' => 4, 'startdate' => time(), 'expirydate' => time()])) {
+                $blanketcourses = [];
+                foreach ($blanketlicenses as $blanketlicense) {
+                    $licensecourses = $DB->get_records_sql("SELECT DISTINCT c.id,c.category,c.sortorder,c.shortname,c.fullname,c.idnumber,c.startdate,c.defaultgroupingid,c.groupmodeforce,c.groupmode, c.visible
+                                                            FROM {course} c
+                                                            JOIN {companylicense_courses} clc on (c.id = clc.courseid)
+                                                            JOIN {trainingevent} t ON (c.id = t.course and clc.courseid = t.course)
+                                                            WHERE clc.licenseid = :licenseid",
+                                                            ['licenseid' => $blanketlicense->id]);
+                    // Add them.
+                    foreach ($licensecourses as $course) {
+                        $courses[$course->id] = $course;
+                    }
+                }
+            }
+
+            // Check for any unused license courses.
+            $mynotstartedlicense = $DB->get_records_sql("SELECT  DISTINCT c.id,c.category,c.sortorder,c.shortname,c.fullname,c.idnumber,c.startdate,c.defaultgroupingid,c.groupmodeforce,c.groupmode, c.visible
+                                                  FROM {companylicense_users} clu
+                                                  JOIN {course} c ON (c.id = clu.licensecourseid)
+                                                  JOIN {trainingevent} t ON (c.id = t.course and clu.licensecourseid = t.course)
+                                                  WHERE clu.userid = :userid
+                                                  AND clu.isusing = 0",
+                                                  ['userid' => $USER->id,
+                                                   'companyid' => $companyid]);
+
+            // Add them.
+            foreach ($mynotstartedlicense as $course) {
+                $courses[$course->id] = $course;
+            }
+        }
+
+        return $courses;
     }
 
     /**
@@ -673,7 +759,7 @@ class iomad {
      * the user belongs to a different company.
      * Otherwise, return true
      */
-    public static function iomad_check_course($course) {
+    public static function iomad_check_course($courseid) {
         global $CFG, $DB, $USER;
 
         // If we are installing this will be called to build
@@ -682,18 +768,21 @@ class iomad {
             return true;
         }
 
-        // Try to find the category in company list.
-        if (!empty($course->id) && $company = $DB->get_record( 'company_course', array('courseid' => $course->id) ) ) {
-            // If this is not the user's company then we return false.
-            if ($DB->get_record('company_users', array('userid' => $USER->id, 'companyid' => $company->companyid))) {
-                // User is not assigned to this company - hide the category.
-                return true;
-            } else {
-                return false;
-            }
+        // Get the user company id.
+        $companyid = iomad::get_my_companyid(context_system::instance());
+        $company = new company($companyid);
+
+        $companycourses = $company->get_menu_courses(true, false, false, false, false, true);
+        
+        // Check if the passed courseid is in the list.
+        if (!empty($companycourses[$courseid])) {
+
+            // Course is visible.
+            return true;
         }
-        // Category is visible.
-        return true;
+
+        // User can't see it.
+        return false;
     }
 
     /**
@@ -794,14 +883,18 @@ class iomad {
                 $paramarray = array();
                 if ($fields[$id]->datatype == "menu" ) {
                     $paramarray = explode("\n", $fields[$id]->param1);
+                    if (${$fieldname} == "-1") {
+                        // Ignore this and continue;
+                        continue;
+                    }
                     if (!empty($paramarray[${$fieldname}])) {
                         ${$fieldname} = $paramarray[${$fieldname}];
                     }
                 }
                 if (!empty(${$fieldname}) ) {
                     $idlist[0] = "We found no one";
-                    $fieldsql = $DB->sql_compare_text('data')." like '%".${$fieldname}."%' AND fieldid = $id";
-                    if ($idfields = $DB->get_records_sql("SELECT userid from {user_info_data} WHERE $fieldsql")) {
+                    $fieldsql = $DB->sql_like('data', ':fieldname')." AND fieldid = :fieldid";
+                    if ($idfields = $DB->get_records_sql("SELECT userid from {user_info_data} WHERE $fieldsql", ['fieldname' => '%'.${$fieldname} . '%', 'fieldid' => $id])) {
                         $fieldids[] = $idfields;
                     }
                     if (!empty($paramarray)) {
@@ -1823,6 +1916,40 @@ class iomad {
             }
         }
     }
+
+    /**
+     * Fix the passed URL to use the tenant one.
+     **/
+     public static function fix_url($url) {
+         global $CFG;
+
+         $myurlarray = parse_url($CFG->wwwroot);
+         $urlarray = parse_url($url);
+
+         // make the passed hostname my hostname.
+         $urlarray['host'] = $myurlarray['host'];
+
+        return self::unparse_url($urlarray);
+     }
+
+    /**
+     * Unparse a URL array and send back the whole thing.
+     * Found script on PHP.net by thomas at gielfeldt dot com
+     **/
+    private static function unparse_url($parsed_url) {
+
+        $scheme   = isset($parsed_url['scheme']) ? $parsed_url['scheme'] . '://' : '';
+        $host     = isset($parsed_url['host']) ? $parsed_url['host'] : '';
+        $port     = isset($parsed_url['port']) ? ':' . $parsed_url['port'] : '';
+        $user     = isset($parsed_url['user']) ? $parsed_url['user'] : '';
+        $pass     = isset($parsed_url['pass']) ? ':' . $parsed_url['pass']  : '';
+        $pass     = ($user || $pass) ? "$pass@" : '';
+        $path     = isset($parsed_url['path']) ? $parsed_url['path'] : '';
+        $query    = isset($parsed_url['query']) ? '?' . $parsed_url['query'] : '';
+        $fragment = isset($parsed_url['fragment']) ? '#' . $parsed_url['fragment'] : '';
+
+        return "$scheme$user$pass$host$port$path$query$fragment";
+     }
 }
 
 /**

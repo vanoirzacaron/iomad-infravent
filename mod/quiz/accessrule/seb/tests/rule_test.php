@@ -87,7 +87,7 @@ class rule_test extends \advanced_testcase {
      *
      * @return array
      */
-    public function valid_form_data_provider() : array {
+    public static function valid_form_data_provider(): array {
         return [
             'valid seb_requiresafeexambrowser' => ['seb_requiresafeexambrowser', '0'],
             'valid seb_linkquitseb0' => ['seb_linkquitseb', 'http://safeexambrowser.org/macosx'],
@@ -103,7 +103,7 @@ class rule_test extends \advanced_testcase {
      *
      * @return array
      */
-    public function invalid_form_data_provider() : array {
+    public static function invalid_form_data_provider(): array {
         return [
             'invalid seb_requiresafeexambrowser' => ['seb_requiresafeexambrowser', 'Uh oh!'],
             'invalid seb_linkquitseb0' => ['seb_linkquitseb', '\0'],
@@ -370,12 +370,35 @@ class rule_test extends \advanced_testcase {
 
         // Set up dummy request.
         $FULLME = 'https://example.com/moodle/mod/quiz/attempt.php?attemptid=123&page=4';
+        $_SERVER['HTTP_USER_AGENT'] = 'SEB';
         $_SERVER['HTTP_X_SAFEEXAMBROWSER_CONFIGKEYHASH'] = 'Broken config key';
 
         $user = $this->getDataGenerator()->create_user();
         $this->setUser($user);
 
         $this->check_invalid_config_key();
+    }
+
+    /**
+     * Test access prevented if config key is invalid when not using the Safe Exam Browser.
+     */
+    public function test_access_prevented_if_config_key_invalid_not_using_seb(): void {
+        global $FULLME;
+
+        $this->setAdminUser();
+        $this->quiz = $this->create_test_quiz($this->course, settings_provider::USE_SEB_CONFIG_MANUALLY);
+
+        // Set up dummy request.
+        $FULLME = 'https://example.com/moodle/mod/quiz/attempt.php?attemptid=123&page=4';
+        $_SERVER['HTTP_X_SAFEEXAMBROWSER_CONFIGKEYHASH'] = 'Broken config key';
+
+        $user = $this->getDataGenerator()->create_user();
+        $this->setUser($user);
+
+        $errormsg = $this->make_rule()->prevent_access();
+        $this->assertNotEmpty($errormsg);
+        $this->assertStringNotContainsString("The Safe Exam Browser keys could not be validated. "
+            . "Check that you're using Safe Exam Browser with the correct configuration file.", $errormsg);
     }
 
     /**
@@ -396,6 +419,7 @@ class rule_test extends \advanced_testcase {
 
         // Set up dummy request.
         $FULLME = 'https://example.com/moodle/mod/quiz/attempt.php?attemptid=123&page=4';
+        $_SERVER['HTTP_USER_AGENT'] = 'SEB';
         $_SERVER['HTTP_X_SAFEEXAMBROWSER_CONFIGKEYHASH'] = 'Broken config key';
 
         $user = $this->getDataGenerator()->create_user();
@@ -421,6 +445,7 @@ class rule_test extends \advanced_testcase {
 
         // Set up dummy request.
         $FULLME = 'https://example.com/moodle/mod/quiz/attempt.php?attemptid=123&page=4';
+        $_SERVER['HTTP_USER_AGENT'] = 'SEB';
         $_SERVER['HTTP_X_SAFEEXAMBROWSER_CONFIGKEYHASH'] = 'Broken config key';
 
         $user = $this->getDataGenerator()->create_user();
@@ -676,6 +701,7 @@ class rule_test extends \advanced_testcase {
         // Set up dummy request.
         $FULLME = 'https://example.com/moodle/mod/quiz/attempt.php?attemptid=123&page=4';
         $expectedhash = hash('sha256', $FULLME . $quizsettings->get_config_key());
+        $_SERVER['HTTP_USER_AGENT'] = 'SEB';
         $_SERVER['HTTP_X_SAFEEXAMBROWSER_CONFIGKEYHASH'] = $expectedhash;
 
         // Set  up broken browser key.
